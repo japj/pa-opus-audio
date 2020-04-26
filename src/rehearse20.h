@@ -12,6 +12,7 @@ public:
 
     //PortAudio
     Napi::Value Detect(const Napi::CallbackInfo& info);
+    Napi::Value Protoring(const Napi::CallbackInfo& info);
 
 private:
     std::string _greeterName;

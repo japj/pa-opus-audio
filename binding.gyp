@@ -2,7 +2,7 @@
   'targets': [
     {
       'target_name': 'rehearse20-native',
-      'sources': [ 'src/rehearse20.cc' , 'src/pa_ringbuffer.c', 'src/detect.c'],
+      'sources': [ 'src/rehearse20.cc' , 'src/pa_ringbuffer.c', 'src/detect.c' , 'src/protoring.cpp'],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")"],
       'dependencies': ["<!(node -p \"require('node-addon-api').gyp\")"],
       'cflags!': [ '-fno-exceptions' ],
@@ -23,7 +23,7 @@
             },
             "link_settings": {
               "libraries": [
-                "-lportaudio"
+                "-lportaudio -lopus"
               ]
             }
         }]

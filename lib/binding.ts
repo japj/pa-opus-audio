@@ -4,6 +4,7 @@ interface IRehearse20Native
 {
     greet(strName: string): string;
     detect(): number;
+    protoring(): number;
 };
 
 class Rehearse20 {
@@ -14,8 +15,13 @@ class Rehearse20 {
     greet (strName: string) {
         return this._addonInstance.greet(strName);
     }
+
     detect () {
         return this._addonInstance.detect();
+    }
+
+    protoring () {
+        return this._addonInstance.protoring();
     }
 
     // private members

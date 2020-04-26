@@ -231,7 +231,7 @@ paInputData* InitPaInputData(PaSampleFormat sampleFormat, long bufferElements, u
         
 */
 
-int main(int argc, char *argv[])
+int protoring()
 {
 	PaError err;
     unsigned int rate = 48000; //48000 enables opus enc/decoding, but some devices are 44100 which results in resampling + bigger input latency

@@ -53,11 +53,20 @@ Napi::Value Rehearse20::Detect(const Napi::CallbackInfo& info) {
     return Napi::Number::New(env, result);
 }
 
+int protoring();
+Napi::Value Rehearse20::Protoring(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+
+    int result = protoring();
+
+    return Napi::Number::New(env, result);
+}
 
 Napi::Function Rehearse20::GetClass(Napi::Env env) {
     return DefineClass(env, "Rehearse20", {
         Rehearse20::InstanceMethod("greet", &Rehearse20::Greet),
         Rehearse20::InstanceMethod("detect", &Rehearse20::Detect),
+        Rehearse20::InstanceMethod("protoring", &Rehearse20::Protoring),
     });
 }
 
