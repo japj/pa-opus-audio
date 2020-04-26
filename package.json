@@ -1,7 +1,7 @@
 {
     "main": "lib/binding.js",
     "dependencies": {
-        "node-addon-api": "^1.1.0"
+        "node-addon-api": "^1.7.1"
     },
     "scripts": {
         "pretest": "tsc",
@@ -9,7 +9,7 @@
     },
     "gypfile": true,
     "name": "rehearse20",
-    "description": "",
+    "description": "Rehearse20",
     "version": "1.0.0",
     "repository": {
         "type": "git",
