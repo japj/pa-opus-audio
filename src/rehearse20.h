@@ -10,6 +10,9 @@ public:
 
     static Napi::Function GetClass(Napi::Env);
 
+    //PortAudio
+    Napi::Value Detect(const Napi::CallbackInfo& info);
+
 private:
     std::string _greeterName;
 };

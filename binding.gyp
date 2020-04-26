@@ -2,7 +2,7 @@
   'targets': [
     {
       'target_name': 'rehearse20-native',
-      'sources': [ 'src/rehearse20.cc' ],
+      'sources': [ 'src/rehearse20.cc' , 'src/pa_ringbuffer.c', 'src/detect.c'],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")"],
       'dependencies': ["<!(node -p \"require('node-addon-api').gyp\")"],
       'cflags!': [ '-fno-exceptions' ],
@@ -20,6 +20,11 @@
             'cflags+': ['-fvisibility=hidden'],
             'xcode_settings': {
               'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
+            },
+            "link_settings": {
+              "libraries": [
+                "-lportaudio"
+              ]
             }
         }]
       ]

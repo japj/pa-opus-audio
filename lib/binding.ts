@@ -3,6 +3,7 @@ const addon = require('../build/Release/rehearse20-native');
 interface IRehearse20Native
 {
     greet(strName: string): string;
+    detect(): number;
 };
 
 class Rehearse20 {
@@ -12,6 +13,9 @@ class Rehearse20 {
 
     greet (strName: string) {
         return this._addonInstance.greet(strName);
+    }
+    detect () {
+        return this._addonInstance.detect();
     }
 
     // private members

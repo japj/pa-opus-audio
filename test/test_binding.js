@@ -8,6 +8,7 @@ function testBasic()
     const instance = new Rehearse20("mr-yeoman");
     assert(instance.greet, "The expected method is not defined");
     assert.strictEqual(instance.greet("kermit"), "mr-yeoman", "Unexpected value returned");
+    assert.strictEqual(instance.detect(), 0, "Unexpected value returned");
 }
 
 function testInvalidParams()
