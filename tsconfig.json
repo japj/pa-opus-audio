@@ -3,8 +3,6 @@
     "declaration": true,
     "lib": [ "esnext" ],
     "module": "commonjs",
-    "outDir": "./dist",
-    "rootDir": "./lib",
     "strict": true,
     "target": "es6",
     "types": [
@@ -12,6 +10,7 @@
     ],
     "typeRoots": [
       "node_modules/@types"
-    ]
+    ],
+    "esModuleInterop": true
   }
 }

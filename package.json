@@ -5,9 +5,10 @@
     },
     "scripts": {
         "pretest": "tsc",
-        "test": "node --napi-modules ./test/test_binding.js",
+        "test": "node ./test/test_binding.js",
         "preprotoring": "tsc",
-        "protoring": "node --napi-modules ./test/test_protoring.js"
+        "protoring": "node ./test/test_protoring.js",
+        "install": "node-gyp rebuild"
     },
     "gypfile": true,
     "name": "rehearse20",
