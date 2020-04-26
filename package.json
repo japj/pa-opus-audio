@@ -1,7 +1,7 @@
 {
     "main": "lib/binding.js",
     "dependencies": {
-        "node-addon-api": "^1.7.1"
+        "node-addon-api": "*"
     },
     "scripts": {
         "pretest": "tsc",

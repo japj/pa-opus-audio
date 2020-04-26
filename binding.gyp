@@ -14,7 +14,15 @@
       },
       'msvs_settings': {
         'VCCLCompilerTool': { 'ExceptionHandling': 1 },
-      }
+      },
+      'conditions' : [
+        ['OS=="mac"', {
+            'cflags+': ['-fvisibility=hidden'],
+            'xcode_settings': {
+              'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
+            }
+        }]
+      ]
     }
   ]
 }
