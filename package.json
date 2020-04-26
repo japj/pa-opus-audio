@@ -1,6 +1,7 @@
 {
     "main": "lib/binding.js",
     "dependencies": {
+        "media-stream-library": "^7.0.3",
         "node-addon-api": "*"
     },
     "scripts": {
