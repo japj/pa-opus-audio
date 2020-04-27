@@ -2,7 +2,12 @@
   'targets': [
     {
       'target_name': 'rehearse20-native',
-      'sources': [ 'src/rehearse20.cc' , 'src/pa_ringbuffer.c', 'src/detect.c' , 'src/protoring.cpp'],
+      'sources': [  'src/rehearse20.cc' , 
+                    'src/pa_ringbuffer.c', 
+                    'src/detect.c' , 
+                    'src/protoring.cpp',
+                    'src/paDecodeOutStream.cpp',
+                    'src/paEncodeInStream.cpp'],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")"],
       'dependencies': ["<!(node -p \"require('node-addon-api').gyp\")"],
       'cflags!': [ '-fno-exceptions' ],
