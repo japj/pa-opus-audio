@@ -60,19 +60,17 @@ int protoring()
     PaSampleFormat sampleFormat = paInt16; //paFloat32 or paInt16;
     long bufferElements = 4096; // TODO: calculate optimal ringbuffer size
     unsigned int inputChannels = 1;
-    unsigned int outputChannels = 1; // since we are outputting the same data from input to output, needs to be the same channels now !
     int opusMaxFrameSize = 120; // 2.5ms@48kHz number of samples per channel in the input signal
     int paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                         // frames per buffer for OS Audio buffer*/
     
     setupPa();
 
-    PaDeviceIndex  outputDevice = Pa_GetDefaultOutputDevice();
     PaDeviceIndex  inputDevice  = Pa_GetDefaultInputDevice();
 
     paDecodeOutStream *outStream = new paDecodeOutStream();
 
-    err = outStream->InitPaOutputData(sampleFormat, bufferElements, outputChannels, rate);
+    err = outStream->InitPaOutputData();
     if (err != 0){
         printf("InitPaOutputData error\n");
         return -1;
@@ -97,7 +95,7 @@ int protoring()
 
     /* setup output device and stream */
  
-    err = outStream->ProtoOpenOutputStream(rate, outputChannels, outputDevice, sampleFormat, paCallbackFramesPerBuffer);
+    err = outStream->ProtoOpenOutputStream();
     CHK("ProtoOpenOutputStream", err);
 
     printf("Pa_StartStream Output\n");

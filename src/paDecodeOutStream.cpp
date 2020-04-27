@@ -21,27 +21,33 @@ static int paStaticOutputCallback(const void*                    inputBuffer,
     return data->paOutputCallback(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
 }
 
-paDecodeOutStream::paDecodeOutStream(/* args */)
+paDecodeOutStream::paDecodeOutStream(/* args */) 
 {
+    sampleRate                      = 48000;    // opus only allows certain sample rates for encoding
+    sampleFormat                    = paInt16;  //paFloat32 or paInt16;
+    channels                        = 1;        //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
+                                                // 2 gives garbled sound?
+    bufferElements                  = 4096;     // TODO: calculate optimal ringbuffer size
+    paCallbackFramesPerBuffer       = 64;       /* since opus decodes 120 frames, this is closests to how our latency is going to be
+                                                // frames per buffer for OS Audio buffer*/
 }
 
 paDecodeOutStream::~paDecodeOutStream()
 {
 }
 
-int paDecodeOutStream::InitPaOutputData(PaSampleFormat sampleFormat, long bufferElements, unsigned int outputChannels, unsigned int rate)
+int paDecodeOutStream::InitPaOutputData()
 {
     int err;
 
-    long writeDataBufElementCount = bufferElements;
+    long writeDataBufElementCount = this->bufferElements;
     long writeSampleSize = Pa_GetSampleSize(sampleFormat);
     this->rBufToRTData = ALLIGNEDMALLOC(writeSampleSize * writeDataBufElementCount);
     PaUtil_InitializeRingBuffer(&this->rBufToRT, writeSampleSize, writeDataBufElementCount, this->rBufToRTData);
     this->frameSizeBytes = writeSampleSize;
-    this->channels = outputChannels;
 
-    if (rate == 48000) {
-        this->decoder = opus_decoder_create(rate, outputChannels, &err);
+    if (this->sampleRate == 48000) {
+        this->decoder = opus_decoder_create(this->sampleRate, this->channels, &err);
         if (this->decoder == NULL) {
             fprintf(stderr, "opus_decoder_create: %s\n",
                 opus_strerror(err));
@@ -76,13 +82,16 @@ int paDecodeOutStream::paOutputCallback(
     return paContinue;
 }
 
-int paDecodeOutStream::ProtoOpenOutputStream(
-		unsigned int rate, unsigned int channels, unsigned int device, PaSampleFormat sampleFormat, int framesPerBuffer)
+int paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
 {
-	PaStreamParameters outputParameters;
+    if (device == paDefaultDevice)
+    {
+        device = Pa_GetDefaultOutputDevice();
+    }
+	
     outputParameters.device = device;
-	outputParameters.channelCount = channels;
-	outputParameters.sampleFormat = sampleFormat;
+	outputParameters.channelCount = this->channels;
+	outputParameters.sampleFormat = this->sampleFormat;
 	outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
 	outputParameters.hostApiSpecificStreamInfo = NULL;
 
@@ -90,8 +99,8 @@ int paDecodeOutStream::ProtoOpenOutputStream(
 	err = Pa_OpenStream(	&this->stream,
 							NULL,
 							&outputParameters,
-							rate,
-							framesPerBuffer,
+							this->sampleRate,
+							this->paCallbackFramesPerBuffer,
 							paNoFlag,
 							paStaticOutputCallback,
 							this

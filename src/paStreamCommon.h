@@ -29,4 +29,7 @@
 void paerror(const char *msg, int r);
 void log_pa_stream_info(PaStream *stream, PaStreamParameters *params);
 
+/* our custom way of default device selection */
+#define paDefaultDevice ((PaDeviceIndex)-2)
+
 #endif

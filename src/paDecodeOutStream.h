@@ -18,7 +18,18 @@ private:
     OpusDecoder*        decoder;
     /* END data for playback opus decoder */
     
+    /* PaStream info */
     PaStream *stream;
+
+    /* this is data that is needed for calculation of information and cannot change after opening stream*/
+    unsigned int sampleRate;
+    PaSampleFormat sampleFormat;
+    long bufferElements;// = 4096; // TODO: calculate optimal ringbuffer size
+    int paCallbackFramesPerBuffer;// = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
+                                        // frames per buffer for OS Audio buffer*/
+    //unsigned int channels; already as part of decoder needed data;
+
+    PaStreamParameters outputParameters;
     /* */
 public:
     paDecodeOutStream(/* args */);
@@ -27,9 +38,9 @@ public:
     /* PUBLIC external API */
 
     /* TODO: some of these functions are here due to the move in progres and might not end up as part of the final API */
-    int InitPaOutputData(PaSampleFormat sampleFormat, long bufferElements, unsigned int outputChannels, unsigned int rate);
+    int InitPaOutputData();
 
-    int ProtoOpenOutputStream(unsigned int rate, unsigned int channels, unsigned int device, PaSampleFormat sampleFormat, int framesPerBuffer);
+    int ProtoOpenOutputStream(PaDeviceIndex device = paDefaultDevice);
 
     int GetRingBufferWriteAvailable();
 
