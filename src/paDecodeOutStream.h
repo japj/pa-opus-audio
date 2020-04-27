@@ -17,6 +17,8 @@ private:
     int                 channels;
     OpusDecoder*        decoder;
     /* END data for playback opus decoder */
+    void*               opusDecodeBuffer;
+    int                 opusMaxFrameSize;
     
     /* PaStream info */
     PaStream *stream;
@@ -43,11 +45,12 @@ public:
     PaError StopStream();
 
     //int dec: Flag (0 or 1) to request that any in-band forward error correction data be decoded. If no such data is available, the frame is decoded as if it were lost.
-    int DecodeDataIntoStream(void *data, opus_int32 len, int dec = 0);
-
+    int DecodeDataIntoPlayback(void *data, opus_int32 len, int dec = 0);
 
     /* TODO: some of these functions are here due to the move in progres and might not end up as part of the final API */
-    int GetRingBufferWriteAvailable();
+    int GetRingBufferWriteAvailable(); // usefull for diagnostics
+private:
+
 
     /* Packets must be passed into the decoder serially and in the correct order for a correct decode. Lost packets can be replaced with loss concealment by calling the decoder with a null pointer and zero length for the missing packet.
        In the case of PLC (data==NULL) or FEC (decode_fec=1), then frame_size needs to be exactly the duration of audio that is missing
@@ -69,6 +72,7 @@ public:
     ring_buffer_size_t WriteRingBuffer( const void *data, ring_buffer_size_t elementCount );
 
     /* INTERNAL */
+public:
     /* called by low level callback , this needs to be public else it can't access it */
     int paOutputCallback( const void*                    inputBuffer,
                           void*                           outputBuffer,

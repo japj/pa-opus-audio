@@ -83,7 +83,7 @@ int protoring()
     long bufferSize = transferSampleSize * transferElementCount;
     void *transferBuffer = ALLIGNEDMALLOC(bufferSize);
     void *opusEncodeBuffer = ALLIGNEDMALLOC(bufferSize);
-    void *opusDecodeBuffer = ALLIGNEDMALLOC(bufferSize);
+    
 
     /* setup output device and stream */
     paDecodeOutStream *outStream = new paDecodeOutStream();
@@ -126,53 +126,36 @@ int protoring()
         {
             ring_buffer_size_t framesWritten;
             ring_buffer_size_t framesRead;
-            int toWriteFrameCount;
-            void *writeBufferPtr;
 
             framesRead = PaUtil_ReadRingBuffer(&inputData->rBufFromRT, transferBuffer, opusMaxFrameSize);
 
             // can only run opus encoding/decoding on 48000 samplerate
             if (rate == 48000) {
-                writeBufferPtr = opusDecodeBuffer;
-
                 // use float32 or int16 opus encoder/decoder
                 if (sampleFormat == paFloat32) {
+                    // encode audio
                     int encodedPacketSize =   opus_encode_float(inputData->encoder, 
                                                     (float*)transferBuffer, 
                                                     opusMaxFrameSize, 
                                                     (unsigned char *)opusEncodeBuffer, 
                                                     bufferSize);
-
-                    toWriteFrameCount = outStream->opusDecodeFloat(
-                                                    (unsigned char *)opusEncodeBuffer,
-                                                    encodedPacketSize,
-                                                    (float *)opusDecodeBuffer,
-                                                    opusMaxFrameSize,
-                                                    0); // request in-band forward error correction
-                                                        // TODO: this is 1 in rx when no packet was received/lost?
+                    // decode audio
+                    framesWritten = outStream->DecodeDataIntoPlayback(opusEncodeBuffer, encodedPacketSize);
                 } else {
+                    // encode audio
                     int encodedPacketSize =   opus_encode(inputData->encoder, 
                                                     (opus_int16*)transferBuffer, 
                                                     opusMaxFrameSize, 
                                                     (unsigned char *)opusEncodeBuffer, 
                                                     bufferSize);
-
-                    toWriteFrameCount = outStream->OpusDecode(
-                                                    (unsigned char *)opusEncodeBuffer,
-                                                    encodedPacketSize,
-                                                    (opus_int16 *)opusDecodeBuffer,
-                                                    opusMaxFrameSize,
-                                                    0); // request in-band forward error correction
-                                                        // TODO: this is 1 in rx when no packet was received/lost?   
+                    // decode audio
+                    framesWritten =outStream->DecodeDataIntoPlayback(opusEncodeBuffer, encodedPacketSize);
                 }
                 
             }
             else {
-                writeBufferPtr = transferBuffer;
-                toWriteFrameCount = framesRead;
+                framesWritten = outStream->DecodeDataIntoPlayback(transferBuffer, framesRead);
             }
-         
-            framesWritten = outStream->WriteRingBuffer(writeBufferPtr, toWriteFrameCount);
 
 #if DISPLAY_STATS
             printf("In->Output availableInInputBuffer: %5d, encodedPacketSize: %5d, toWriteFrameCount: %5d, framesWritten: %5d\n", 

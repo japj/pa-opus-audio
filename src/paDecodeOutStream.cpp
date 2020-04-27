@@ -28,12 +28,15 @@ paDecodeOutStream::paDecodeOutStream(/* args */)
     channels                        = 1;        //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
                                                 // 2 gives garbled sound?
     bufferElements                  = 4096;     // TODO: calculate optimal ringbuffer size
+                                                // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
     paCallbackFramesPerBuffer       = 64;       /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                                 // frames per buffer for OS Audio buffer*/
+    opusMaxFrameSize                = 120;      // 2.5ms@48kHz number of samples per channel in the input signal
 }
 
 paDecodeOutStream::~paDecodeOutStream()
 {
+    // TODO: cleanup all memory
 }
 
 int paDecodeOutStream::InitPaOutputData()
@@ -42,7 +45,8 @@ int paDecodeOutStream::InitPaOutputData()
 
     long writeDataBufElementCount = this->bufferElements;
     long writeSampleSize = Pa_GetSampleSize(sampleFormat);
-    this->rBufToRTData = ALLIGNEDMALLOC(writeSampleSize * writeDataBufElementCount);
+    long bufferSize = writeSampleSize * writeDataBufElementCount;
+    this->rBufToRTData = ALLIGNEDMALLOC(bufferSize);
     PaUtil_InitializeRingBuffer(&this->rBufToRT, writeSampleSize, writeDataBufElementCount, this->rBufToRTData);
     this->frameSizeBytes = writeSampleSize;
 
@@ -54,6 +58,8 @@ int paDecodeOutStream::InitPaOutputData()
             return -1;
         }
     }
+
+    this->opusDecodeBuffer = ALLIGNEDMALLOC(bufferSize);
 
     return 0;
 }
@@ -125,6 +131,7 @@ int paDecodeOutStream::opusDecodeFloat(
             int decode_fec
         )
 {
+    // TODO: Number of decoded samples or Error codes
     return opus_decode_float(this->decoder,
                                                     data,
                                                     len,
@@ -142,6 +149,7 @@ int paDecodeOutStream::OpusDecode(
             int decode_fec
         )
 {
+    // TODO: Number of decoded samples or Error codes
     return opus_decode(this->decoder,
                                                     data,
                                                     len,
@@ -187,10 +195,44 @@ int paDecodeOutStream::InitForDevice(PaDeviceIndex device)
     return 0;
 }
 
-int paDecodeOutStream::DecodeDataIntoStream(void *data, opus_int32 len, int dec)
+int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int dec)
 {
+    void *writeBufferPtr;
+    int toWriteFrameCount;
+    ring_buffer_size_t framesWritten;
+
+    if (sampleRate == 48000) {
+        writeBufferPtr = this->opusDecodeBuffer;
+
+        if (sampleFormat == paFloat32) {
+            toWriteFrameCount = this->opusDecodeFloat(  (unsigned char*)data,
+                                                        len,
+                                                        (float *)this->opusDecodeBuffer,
+                                                        this->opusMaxFrameSize,
+                                                        dec);
+        }
+        else
+        {
+            // we assume paInt16;
+            toWriteFrameCount = this->OpusDecode(   (unsigned char*)data,
+                                                    len,
+                                                    (opus_int16*)this->opusDecodeBuffer,
+                                                    this->opusMaxFrameSize,
+                                                    dec);
+        }
+        
+    }
+    else {
+        // only support encode/decoding with opus
+        // so for now treat this as "pass-through" audio
+        writeBufferPtr = data;
+        toWriteFrameCount = len;
+    }
+
     // we need to decode all data in sequence order
     // however, if there is not enough place in the Pa RingBuffer then for now we will just drop any data so audio playback loss might occur
+    framesWritten = this->WriteRingBuffer(writeBufferPtr, toWriteFrameCount);
+    // framesWritten could be less than GetRingBufferWriteAvailable -> TODO notify?
 
-    return 0;
+    return framesWritten;
 }
