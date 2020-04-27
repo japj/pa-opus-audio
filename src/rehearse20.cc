@@ -88,8 +88,24 @@ Napi::Value Rehearse20::OutputInitAndStartStream(const Napi::CallbackInfo& info)
 Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
+    
+    if (info.Length() != 1) {
+        Napi::TypeError::New(env, "Wrong number of arguments")
+          .ThrowAsJavaScriptException();
+        return env.Null();
+    }
 
-    return Napi::Number::New(env, 0);
+    if (!info[0].IsBuffer()) {
+        Napi::TypeError::New(env, "Need data Buffer as argument 1")
+          .ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    Buffer<uint8_t> buffer = info[0].As<Buffer<uint8_t>>();
+
+    int result = output.DecodeDataIntoPlayback(buffer.Data(), buffer.Length());
+
+    return Napi::Number::New(env, result);
 }
 
 
