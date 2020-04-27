@@ -33,7 +33,7 @@ paDecodeOutStream::paDecodeOutStream(/* args */)
                                                 // frames per buffer for OS Audio buffer*/
     opusMaxFrameSize                = 120;      // 2.5ms@48kHz number of samples per channel in the input signal
     
-    opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
+    //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
 						                        // for better analysis of the audio I am sending with 60ms from opusrtp
 }
 
