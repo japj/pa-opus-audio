@@ -11,7 +11,10 @@
         "protoring": "node ./test/test_protoring.js",
         "install": "node-gyp rebuild && tsc",
         "postbuild": "tsc",
-        "build": "node-gyp build"
+        "build": "node-gyp build",
+
+        "preoutput": "npm run build && tsc",
+        "output": "node ./test/test_output.js"
     },
     "gypfile": true,
     "name": "rehearse20",

@@ -106,4 +106,4 @@ build/
 lib/*.d.ts
 lib/binding.js
 test/*.d.ts
-test/test_protoring.js
+test/*.js

@@ -72,8 +72,17 @@ Napi::Value Rehearse20::Protoring(const Napi::CallbackInfo& info) {
 Napi::Value Rehearse20::OutputInitAndStartStream(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
+    int result = setupPa();
+    if (result == 0)
+    {
+        result = output.InitForDevice();
+        if (result == 0)
+        {
+            result = output.StartStream();
+        }
+    }
 
-    return Napi::Number::New(env, 0);
+    return Napi::Number::New(env, result);
 }
 
 Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo& info)
