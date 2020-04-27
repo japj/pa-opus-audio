@@ -21,7 +21,7 @@ server.on('message',function(msg: Buffer, info: udp.RemoteInfo) {
     let clientKey = info.address + info.port;
     let payload  = Rtp.payload(msg);
 
-    console.log(`'${clientKey}' send msg with length ${msg.length}`);
+    //console.log(`'${clientKey}' send msg with length ${msg.length}`);
     if (!rtpClients.has(clientKey)) {
       console.log(`NEW client detected at: ${clientKey}`);
       let rtpClient = new Rehearse20(clientKey);
