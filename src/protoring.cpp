@@ -2,7 +2,18 @@
  * prototyping portaudio ringbuffer with opus
  */
 #include <stdio.h>
+#ifdef _WIN32
+//TODO: check if aligned alloc is really needed?
+#define ALLIGNEDMALLOC(x) _aligned_malloc(x, 32)
+#define ALLIGNEDFREE(x) _aligned_free
+#include <chrono>
+#include <thread>
+#define usleep(x) std::this_thread::sleep_for(std::chrono::microseconds(x))
+#else
 #include <unistd.h>
+#define ALLIGNEDMALLOC(x) valloc(x)
+#define ALLIGNEDFREE(x) free(x)
+#endif
 #include <string.h>
 #include <memory.h>
 #include <stdlib.h>
@@ -178,12 +189,12 @@ int ProtoOpenInputStream(PaStream **stream,
 paOutputData* InitPaOutputData(PaSampleFormat sampleFormat, long bufferElements, unsigned int outputChannels, unsigned int rate)
 {
     int err;
-    paOutputData *od = (paOutputData *)valloc(sizeof(paOutputData));
+    paOutputData *od = (paOutputData *)ALLIGNEDMALLOC(sizeof(paOutputData));
     memset(od, 0, sizeof(paOutputData));
 
     long writeDataBufElementCount = bufferElements;
     long writeSampleSize = Pa_GetSampleSize(sampleFormat);
-    od->rBufToRTData = valloc(writeSampleSize * writeDataBufElementCount);
+    od->rBufToRTData = ALLIGNEDMALLOC(writeSampleSize * writeDataBufElementCount);
     PaUtil_InitializeRingBuffer(&od->rBufToRT, writeSampleSize, writeDataBufElementCount, od->rBufToRTData);
     od->frameSizeBytes = writeSampleSize;
     od->channels = outputChannels;
@@ -203,12 +214,12 @@ paOutputData* InitPaOutputData(PaSampleFormat sampleFormat, long bufferElements,
 paInputData* InitPaInputData(PaSampleFormat sampleFormat, long bufferElements, unsigned int inputChannels, unsigned int rate)
 {
     int err;
-    paInputData *id = (paInputData *)valloc(sizeof(paInputData));
+    paInputData *id = (paInputData *)ALLIGNEDMALLOC(sizeof(paInputData));
     memset(id, 0, sizeof(paInputData));   
 
     long readDataBufElementCount = bufferElements;
     long readSampleSize = Pa_GetSampleSize(sampleFormat);
-    id->rBufFromRTData = valloc(readSampleSize * readDataBufElementCount);
+    id->rBufFromRTData = ALLIGNEDMALLOC(readSampleSize * readDataBufElementCount);
     PaUtil_InitializeRingBuffer(&id->rBufFromRT, readSampleSize, readDataBufElementCount, id->rBufFromRTData);
     id->frameSizeBytes = readSampleSize;
     id->channels = inputChannels;
@@ -275,9 +286,9 @@ int protoring()
     long transferElementCount = bufferElements;
     long transferSampleSize = Pa_GetSampleSize(sampleFormat);
     long bufferSize = transferSampleSize * transferElementCount;
-    void *transferBuffer = valloc(bufferSize);
-    void *opusEncodeBuffer = valloc(bufferSize);
-    void *opusDecodeBuffer = valloc(bufferSize);
+    void *transferBuffer = ALLIGNEDMALLOC(bufferSize);
+    void *opusEncodeBuffer = ALLIGNEDMALLOC(bufferSize);
+    void *opusDecodeBuffer = ALLIGNEDMALLOC(bufferSize);
 
     /* setup output device and stream */
  

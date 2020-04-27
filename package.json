@@ -9,7 +9,9 @@
         "test": "node ./test/test_binding.js",
         "preprotoring": "tsc",
         "protoring": "node ./test/test_protoring.js",
-        "install": "node-gyp rebuild"
+        "install": "node-gyp rebuild",
+        "prebuild": "tsc",
+        "build": "node-gyp build"
     },
     "gypfile": true,
     "name": "rehearse20",
