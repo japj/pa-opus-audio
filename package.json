@@ -9,7 +9,7 @@
         "test": "node ./test/test_binding.js",
         "preprotoring": "npm run build && tsc",
         "protoring": "node ./test/test_protoring.js",
-        "install": "node-gyp rebuild",
+        "install": "node-gyp rebuild && tsc",
         "postbuild": "tsc",
         "build": "node-gyp build"
     },
