@@ -70,11 +70,10 @@ int protoring()
     PaDeviceIndex  outputDevice = Pa_GetDefaultOutputDevice();
     PaDeviceIndex  inputDevice  = Pa_GetDefaultInputDevice();
 
-    /* output stream prepare */
-    PaStream *outputStream;
+    paDecodeOutStream *outStream = new paDecodeOutStream();
 
-    paOutputData *outputData = InitPaOutputData(sampleFormat, bufferElements, outputChannels, rate);
-    if (outputData == NULL){
+    err = outStream->InitPaOutputData(sampleFormat, bufferElements, outputChannels, rate);
+    if (err != 0){
         printf("InitPaOutputData error\n");
         return -1;
     }
@@ -98,11 +97,11 @@ int protoring()
 
     /* setup output device and stream */
  
-    err = ProtoOpenOutputStream(&outputStream, rate, outputChannels, outputDevice, outputData, sampleFormat, paCallbackFramesPerBuffer);
+    err = outStream->ProtoOpenOutputStream(rate, outputChannels, outputDevice, sampleFormat, paCallbackFramesPerBuffer);
     CHK("ProtoOpenOutputStream", err);
 
     printf("Pa_StartStream Output\n");
-    err = Pa_StartStream(outputStream);
+    err = outStream->StartStream();
     CHK("Pa_StartStream Output", err);
 
     /* setup input device and stream */
@@ -120,10 +119,10 @@ int protoring()
 
     while (inputStreamActive && outputStreamActive) {
         ring_buffer_size_t availableInInputBuffer   = PaUtil_GetRingBufferReadAvailable(&inputData->rBufFromRT);
-        ring_buffer_size_t availableToOutputBuffer  = PaUtil_GetRingBufferWriteAvailable(&outputData->rBufToRT);
+        ring_buffer_size_t availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
 
         inputStreamActive = Pa_IsStreamActive(inputStream);
-        outputStreamActive = Pa_IsStreamActive(outputStream);
+        outputStreamActive = outStream->IsStreamActive();
 #if DISPLAY_STATS
         printf("inputStreamActive: %5d, availableInInputBuffer: %5d ", inputStreamActive, availableInInputBuffer);
         printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, availableToOutputBuffer);
@@ -153,7 +152,7 @@ int protoring()
                                                     (unsigned char *)opusEncodeBuffer, 
                                                     bufferSize);
 
-                    toWriteFrameCount = opus_decode_float(outputData->decoder,
+                    toWriteFrameCount = outStream->opusDecodeFloat(
                                                     (unsigned char *)opusEncodeBuffer,
                                                     encodedPacketSize,
                                                     (float *)opusDecodeBuffer,
@@ -167,7 +166,7 @@ int protoring()
                                                     (unsigned char *)opusEncodeBuffer, 
                                                     bufferSize);
 
-                    toWriteFrameCount = opus_decode(outputData->decoder,
+                    toWriteFrameCount = outStream->OpusDecode(
                                                     (unsigned char *)opusEncodeBuffer,
                                                     encodedPacketSize,
                                                     (opus_int16 *)opusDecodeBuffer,
@@ -182,7 +181,7 @@ int protoring()
                 toWriteFrameCount = framesRead;
             }
          
-            framesWritten = PaUtil_WriteRingBuffer(&outputData->rBufToRT, writeBufferPtr, toWriteFrameCount);
+            framesWritten = outStream->WriteRingBuffer(writeBufferPtr, toWriteFrameCount);
 
 #if DISPLAY_STATS
             printf("In->Output availableInInputBuffer: %5d, encodedPacketSize: %5d, toWriteFrameCount: %5d, framesWritten: %5d\n", 
@@ -193,14 +192,14 @@ int protoring()
 #endif
 
             availableInInputBuffer   = PaUtil_GetRingBufferReadAvailable(&inputData->rBufFromRT); 
-            availableToOutputBuffer  = PaUtil_GetRingBufferWriteAvailable(&outputData->rBufToRT);
+            availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
         }
 
         usleep(500);
     }
 
     printf("Pa_StopStream Output\n");
-    err = Pa_StopStream(outputStream);
+    err = outStream->StopStream();
     CHK("Pa_StopStream Output", err);
 
     printf("Pa_StopStream Input\n");
