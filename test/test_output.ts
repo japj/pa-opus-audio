@@ -18,7 +18,7 @@ let rtpClients = new Map<string, Rehearse20>();
 
 // emits on new datagram msg
 server.on('message',function(msg: Buffer, info: udp.RemoteInfo) {
-    let clientKey = info.address + info.port;
+    let clientKey = `${info.address}:${info.port}`;
     let payload  = Rtp.payload(msg);
 
     //console.log(`'${clientKey}' send msg with length ${msg.length}`);
