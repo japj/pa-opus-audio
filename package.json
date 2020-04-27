@@ -7,7 +7,7 @@
     "scripts": {
         "pretest": "tsc",
         "test": "node ./test/test_binding.js",
-        "preprotoring": "tsc",
+        "preprotoring": "npm run build && tsc",
         "protoring": "node ./test/test_protoring.js",
         "install": "node-gyp rebuild",
         "postbuild": "tsc",

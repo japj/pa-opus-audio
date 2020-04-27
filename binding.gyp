@@ -5,7 +5,7 @@
       'sources': [  'src/rehearse20.cc' , 
                     'src/pa_ringbuffer.c', 
                     'src/detect.c' , 
-                    'src/protoring.cpp',
+                    'src/paStreamCommon.cpp',
                     'src/paDecodeOutStream.cpp',
                     'src/paEncodeInStream.cpp'],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")"],
