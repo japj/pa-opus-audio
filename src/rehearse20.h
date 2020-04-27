@@ -1,6 +1,8 @@
 #pragma once
 
 #include <napi.h>
+#include "paDecodeOutStream.h"
+#include "paStreamCommon.h"
 
 class Rehearse20 : public Napi::ObjectWrap<Rehearse20>
 {

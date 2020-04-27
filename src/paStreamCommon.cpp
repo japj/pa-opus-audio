@@ -63,8 +63,6 @@ int protoring()
     int opusMaxFrameSize = 120; // 2.5ms@48kHz number of samples per channel in the input signal
     int paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                         // frames per buffer for OS Audio buffer*/
-    
-    setupPa();
 
     PaDeviceIndex  inputDevice  = Pa_GetDefaultInputDevice();
 

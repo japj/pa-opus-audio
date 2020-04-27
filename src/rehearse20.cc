@@ -53,11 +53,16 @@ Napi::Value Rehearse20::Detect(const Napi::CallbackInfo& info) {
     return Napi::Number::New(env, result);
 }
 
-int protoring();
 Napi::Value Rehearse20::Protoring(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
 
-    int result = protoring();
+    int result;
+    
+    result = setupPa();
+    if (result == 0)
+    {
+        result = protoring();
+    }
 
     return Napi::Number::New(env, result);
 }
