@@ -40,6 +40,12 @@ void log_pa_stream_info(PaStream *stream, PaStreamParameters *params)
 
 int setupPa()
 {
+    // only perform Pa initialization once
+    static bool initDone = 0;
+    if (initDone)
+    {
+        return 0;
+    }
     PaError err;
     /* PortAudio setup*/
     err = Pa_Initialize();
@@ -48,6 +54,7 @@ int setupPa()
 		printf("PortAudio error: %s \n", Pa_GetErrorText(err));
 		return -1;
 	}
+    initDone = true;
     return 0;
 }
 

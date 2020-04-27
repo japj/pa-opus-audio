@@ -3,10 +3,6 @@ import Rtp = require('./rtp');
 
 const instance = new Rehearse20("mr-yeoman");
 
-let x=instance.OutputInitAndStartStream();
-console.log(`OutputInitAndStartStream: ${x}`);
-
-
 import udp = require('dgram');
 
 // creating a udp server
@@ -18,21 +14,36 @@ server.on('error',function(error:string){
   server.close();
 });
 
+let rtpClients = new Map<string, Rehearse20>();
+
 // emits on new datagram msg
 server.on('message',function(msg: Buffer, info: udp.RemoteInfo) {
-    //console.log('Data received from client : ' + msg.toString());
-    console.log('Received %d bytes from %s:%d\n', msg.length, info.address, info.port);
+    let clientKey = info.address + info.port;
+    let payload  = Rtp.payload(msg);
+
+    console.log(`'${clientKey}' send msg with length ${msg.length}`);
+    if (!rtpClients.has(clientKey)) {
+      console.log(`NEW client detected at: ${clientKey}`);
+      let rtpClient = new Rehearse20(clientKey);
+      let x = rtpClient.OutputInitAndStartStream();
+      console.log(`OutputInitAndStartStream: ${x}`);
+      rtpClients.set(clientKey, rtpClient);
+    }
+    let currentClient = rtpClients.get(clientKey);
+    if (currentClient) {
+      let status = currentClient.DecodeDataIntoPlayback(payload);
+    }
+
+    /*
     console.log(`version        : ${Rtp.version(msg)}`);
     console.log(`extension      : ${Rtp.extension(msg)}`);
     console.log(`payloadType    : ${Rtp.payloadType(msg)}`);
     console.log(`sequenceNumber : ${Rtp.sequenceNumber(msg)}`);
     console.log(`timestamp      : ${Rtp.timestamp(msg)}`);
     console.log(`sSrc           : ${Rtp.sSrc(msg)}`);
-
-    let payload  = Rtp.payload(msg);
     console.log(`payload.length : ${payload.byteLength}`);
-    let status = instance.DecodeDataIntoPlayback(payload);
-    console.log(`status: ${status}`);
+    */
+    //console.log(`status: ${status}`);
 });
 
 //emits when socket is ready and listening for datagram msgs
