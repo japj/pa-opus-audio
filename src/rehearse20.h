@@ -16,6 +16,10 @@ public:
     Napi::Value Detect(const Napi::CallbackInfo& info);
     Napi::Value Protoring(const Napi::CallbackInfo& info);
 
+    Napi::Value OutputInitAndStartStream(const Napi::CallbackInfo& info);
+    Napi::Value DecodeDataIntoPlayback(const Napi::CallbackInfo& info);
+
 private:
     std::string _greeterName;
+    paDecodeOutStream output;
 };
