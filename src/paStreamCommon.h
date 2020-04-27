@@ -19,7 +19,7 @@
 #include "portaudio.h"
 #include "pa_ringbuffer.h"
 
-#define CHK(call, r) { \
+#define PaCHK(call, r) { \
 	if (r < 0) { \
 		paerror(call, r); \
 		return -1; \

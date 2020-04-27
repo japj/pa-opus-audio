@@ -54,7 +54,7 @@ int ProtoOpenInputStream(PaStream **stream,
 							paInputCallback,
 							pReadData
 	);
-	CHK("ProtoOpenInputStream", err);
+	PaCHK("ProtoOpenInputStream", err);
 
 	printf("ProtoOpenInputStream information:\n");
 	log_pa_stream_info(*stream, &inputParameters);

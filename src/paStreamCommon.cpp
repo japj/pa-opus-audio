@@ -68,14 +68,6 @@ int protoring()
 
     PaDeviceIndex  inputDevice  = Pa_GetDefaultInputDevice();
 
-    paDecodeOutStream *outStream = new paDecodeOutStream();
-
-    err = outStream->InitPaOutputData();
-    if (err != 0){
-        printf("InitPaOutputData error\n");
-        return -1;
-    }
-
     /* input stream prepare */
     PaStream *inputStream;
 
@@ -94,21 +86,22 @@ int protoring()
     void *opusDecodeBuffer = ALLIGNEDMALLOC(bufferSize);
 
     /* setup output device and stream */
- 
-    err = outStream->ProtoOpenOutputStream();
-    CHK("ProtoOpenOutputStream", err);
+    paDecodeOutStream *outStream = new paDecodeOutStream();
+    
+    err = outStream->InitForDevice();
+    PaCHK("outStream->InitForDevice", err);
 
     printf("Pa_StartStream Output\n");
     err = outStream->StartStream();
-    CHK("Pa_StartStream Output", err);
+    PaCHK("Pa_StartStream Output", err);
 
     /* setup input device and stream */
     err = ProtoOpenInputStream(&inputStream, rate, inputChannels, inputDevice, inputData, sampleFormat, paCallbackFramesPerBuffer);
-    CHK("ProtoOpenInputStream", err);
+    PaCHK("ProtoOpenInputStream", err);
 
     printf("Pa_StartStream Input\n");
     err = Pa_StartStream(inputStream);
-    CHK("Pa_StartStream Input", err);
+    PaCHK("Pa_StartStream Input", err);
 
     int inputStreamActive = 1;
     int outputStreamActive = 1;
@@ -198,11 +191,11 @@ int protoring()
 
     printf("Pa_StopStream Output\n");
     err = outStream->StopStream();
-    CHK("Pa_StopStream Output", err);
+    PaCHK("Pa_StopStream Output", err);
 
     printf("Pa_StopStream Input\n");
     err = Pa_StopStream(inputStream);
-    CHK("Pa_StopStream Input", err);
+    PaCHK("Pa_StopStream Input", err);
 
 #if 0
     //todo: move all cleanup in seperate functions
@@ -220,7 +213,7 @@ int protoring()
 #endif
 
     err = Pa_Terminate();
-    CHK("Pa_Terminate", err);
+    PaCHK("Pa_Terminate", err);
 
     return 0;
 }

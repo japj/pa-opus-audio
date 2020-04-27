@@ -82,7 +82,7 @@ int paDecodeOutStream::paOutputCallback(
     return paContinue;
 }
 
-int paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
+PaError paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
 {
     if (device == paDefaultDevice)
     {
@@ -105,11 +105,11 @@ int paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
 							paStaticOutputCallback,
 							this
 	);
-	CHK("ProtoOpenOutputStream", err);
+	PaCHK("ProtoOpenOutputStream", err);
 
 	printf("ProtoOpenOutputStream information:\n");
 	log_pa_stream_info(this->stream, &outputParameters);
-	return 0;
+	return err;
 }
 
 int paDecodeOutStream::GetRingBufferWriteAvailable()
@@ -169,4 +169,28 @@ PaError paDecodeOutStream::IsStreamActive()
 PaError paDecodeOutStream::StopStream()
 {
     return Pa_StopStream(this->stream);
+}
+
+int paDecodeOutStream::InitForDevice(PaDeviceIndex device)
+{
+    PaError pErr;
+    int err;
+    err = InitPaOutputData();
+    if (err != 0){
+        printf("InitPaOutputData error\n");
+        return -1;
+    }
+    
+    pErr = ProtoOpenOutputStream(device);
+    PaCHK("ProtoOpenOutputStream", pErr);
+
+    return 0;
+}
+
+int paDecodeOutStream::DecodeDataIntoStream(void *data, opus_int32 len, int dec)
+{
+    // we need to decode all data in sequence order
+    // however, if there is not enough place in the Pa RingBuffer then for now we will just drop any data so audio playback loss might occur
+
+    return 0;
 }
