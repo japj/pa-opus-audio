@@ -15,14 +15,13 @@ static int paOutputCallback(const void*                    inputBuffer,
 			              PaStreamCallbackFlags           statusFlags,
                           void*                           userData)
 {
-    int i;
     paOutputData *data = (paOutputData*)userData;
     (void) inputBuffer; /* Prevent "unused variable" warnings. */
 
     /* Reset output data first */
     memset(outputBuffer, 0, framesPerBuffer * data->channels * data->frameSizeBytes);
 
-    ring_buffer_size_t availableInReadBuffer = PaUtil_GetRingBufferReadAvailable(&data->rBufToRT);
+    unsigned long availableInReadBuffer = (unsigned long)PaUtil_GetRingBufferReadAvailable(&data->rBufToRT);
     ring_buffer_size_t actualFramesRead = 0;
 
     if (availableInReadBuffer >= framesPerBuffer) {

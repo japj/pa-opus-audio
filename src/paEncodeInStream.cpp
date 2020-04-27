@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <memory.h>
 
-#include "paEncodeInstream.h"
+#include "paEncodeInStream.h"
 
 
 /* This routine will be called by the PortAudio engine when audio is needed.
@@ -15,15 +15,16 @@ static int paInputCallback(const void*                    inputBuffer,
 			              PaStreamCallbackFlags           statusFlags,
                           void*                           userData)
 {
-    int i;
     paInputData *data = (paInputData*)userData;
     (void) outputBuffer; /* Prevent "unused variable" warnings. */
 
-    ring_buffer_size_t availableWriteFramesInRingBuffer = PaUtil_GetRingBufferWriteAvailable(&data->rBufFromRT);
+    unsigned long availableWriteFramesInRingBuffer = (unsigned long)PaUtil_GetRingBufferWriteAvailable(&data->rBufFromRT);
+    ring_buffer_size_t written = 0;
+
     // for now, we only write to the ring buffer if enough space is available
     if (framesPerBuffer <= availableWriteFramesInRingBuffer)
     {
-        ring_buffer_size_t written = PaUtil_WriteRingBuffer(&data->rBufFromRT, inputBuffer, framesPerBuffer);
+        written = PaUtil_WriteRingBuffer(&data->rBufFromRT, inputBuffer, framesPerBuffer);
         // check if fully written?
         return paContinue;
     }
