@@ -73,15 +73,6 @@ int protoring()
 
     PaDeviceIndex  inputDevice  = Pa_GetDefaultInputDevice();
 
-    /* input stream prepare */
-    PaStream *inputStream;
-
-    paInputData *inputData = InitPaInputData(sampleFormat, bufferElements, inputChannels, rate);
-    if (inputData == NULL){
-        printf("InitPaInputData error\n");
-        return -1;
-    }
-
     /* record/play transfer buffer */
     long transferElementCount = bufferElements;
     long transferSampleSize = Pa_GetSampleSize(sampleFormat);
@@ -89,10 +80,8 @@ int protoring()
     void *transferBuffer = ALLIGNEDMALLOC(bufferSize);
     void *opusEncodeBuffer = ALLIGNEDMALLOC(bufferSize);
     
-
     /* setup output device and stream */
     paDecodeOutStream *outStream = new paDecodeOutStream();
-    
     err = outStream->InitForDevice();
     PaCHK("outStream->InitForDevice", err);
 
@@ -101,11 +90,12 @@ int protoring()
     PaCHK("Pa_StartStream Output", err);
 
     /* setup input device and stream */
-    err = ProtoOpenInputStream(&inputStream, rate, inputChannels, inputDevice, inputData, sampleFormat, paCallbackFramesPerBuffer);
+    paEncodeInStream *inStream = new paEncodeInStream();
+    err = inStream->InitForDevice();
     PaCHK("ProtoOpenInputStream", err);
 
     printf("Pa_StartStream Input\n");
-    err = Pa_StartStream(inputStream);
+    err = inStream->StartStream();
     PaCHK("Pa_StartStream Input", err);
 
     int inputStreamActive = 1;
@@ -114,16 +104,19 @@ int protoring()
 #define DISPLAY_STATS 0
 
     while (inputStreamActive && outputStreamActive) {
-        ring_buffer_size_t availableInInputBuffer   = PaUtil_GetRingBufferReadAvailable(&inputData->rBufFromRT);
+        ring_buffer_size_t availableInInputBuffer   = inStream->GetRingBufferReadAvailable();
         ring_buffer_size_t availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
 
-        inputStreamActive = Pa_IsStreamActive(inputStream);
+        inputStreamActive = inStream->IsStreamActive();
         outputStreamActive = outStream->IsStreamActive();
 #if DISPLAY_STATS
         printf("inputStreamActive: %5d, availableInInputBuffer: %5d ", inputStreamActive, availableInInputBuffer);
         printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, availableToOutputBuffer);
         printf("\n");
 #endif
+
+/*
+    TODO: refactor into input encoding API
 
         // transfer from recording to playback by encode/decoding opus signals
         // loop through input buffer in chunks of opusMaxFrameSize
@@ -132,6 +125,7 @@ int protoring()
             ring_buffer_size_t framesWritten;
             ring_buffer_size_t framesRead;
 
+            // TODO: design API
             framesRead = PaUtil_ReadRingBuffer(&inputData->rBufFromRT, transferBuffer, opusMaxFrameSize);
 
             // can only run opus encoding/decoding on 48000 samplerate
@@ -170,9 +164,10 @@ int protoring()
                                 framesWritten);
 #endif
 
-            availableInInputBuffer   = PaUtil_GetRingBufferReadAvailable(&inputData->rBufFromRT); 
+            availableInInputBuffer   = inStream->GetRingBufferReadAvailable(); 
             availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
         }
+        */
 
         usleep(500);
     }
@@ -182,7 +177,7 @@ int protoring()
     PaCHK("Pa_StopStream Output", err);
 
     printf("Pa_StopStream Input\n");
-    err = Pa_StopStream(inputStream);
+    err = inStream->StopStream();
     PaCHK("Pa_StopStream Input", err);
 
 #if 0

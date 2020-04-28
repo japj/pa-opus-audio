@@ -86,7 +86,7 @@ int paDecodeOutStream::paOutputCallback(
         // if actualFramesRead < framesPerBuffer then we read not enough data
     }
 
-    // if framesPerBuffer > availableInReadBuffer we have a buffer underrun
+    // TODO: if framesPerBuffer > availableInReadBuffer we have a buffer underrun, notify?
     return paContinue;
 }
 
