@@ -12,24 +12,23 @@
         "install": "node-gyp rebuild && tsc",
         "postbuild": "tsc",
         "build": "node-gyp build",
-
         "preoutput": "npm run build && tsc",
         "output": "node ./test/test_output.js"
     },
     "gypfile": true,
-    "name": "rehearse20",
-    "description": "Rehearse20",
-    "version": "1.0.0",
+    "name": "pa-opus-audio",
+    "description": "pa-opus-audio is a Node.js native addon for low latency PortAudio/Opus Audio Recording and Playback.",
+    "version": "0.1.0",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/japj/rehearse20.git"
+        "url": "git+https://github.com/japj/pa-opus-audio.git"
     },
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "bugs": {
-        "url": "https://github.com/japj/rehearse20/issues"
+        "url": "https://github.com/japj/pa-opus-audio/issues"
     },
-    "homepage": "https://github.com/japj/rehearse20#readme",
+    "homepage": "https://github.com/japj/pa-opus-audio#readme",
     "devDependencies": {
         "@types/node": "^7.0.22",
         "typescript": "^2.3.3"
