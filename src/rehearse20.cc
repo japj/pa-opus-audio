@@ -108,6 +108,30 @@ Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo& info)
     return Napi::Number::New(env, result);
 }
 
+Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+
+    int result = setupPa();
+    if (result == 0)
+    {
+        result = input.InitForDevice();
+        if (result == 0)
+        {
+            result = input.StartStream();
+        }
+    }
+
+    return Napi::Number::New(env, 0);
+}
+
+Napi::Value Rehearse20::EncodeRecordingIntoData(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+
+    return Napi::Number::New(env, 0);
+}
+
 
 Napi::Function Rehearse20::GetClass(Napi::Env env) {
     return DefineClass(env, "Rehearse20", {
@@ -116,6 +140,8 @@ Napi::Function Rehearse20::GetClass(Napi::Env env) {
         Rehearse20::InstanceMethod("protoring", &Rehearse20::Protoring),
         Rehearse20::InstanceMethod("OutputInitAndStartStream", &Rehearse20::OutputInitAndStartStream),
         Rehearse20::InstanceMethod("DecodeDataIntoPlayback", &Rehearse20::DecodeDataIntoPlayback),
+        Rehearse20::InstanceMethod("InputInitAndStartStream", &Rehearse20::InputInitAndStartStream),
+        Rehearse20::InstanceMethod("EncodeRecordingIntoData", &Rehearse20::EncodeRecordingIntoData),
     });
 }
 

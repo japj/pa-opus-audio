@@ -5,8 +5,12 @@ interface IRehearse20Native
     greet(strName: string): string;
     detect(): number;
     protoring(): number;
+    
     OutputInitAndStartStream(): number;
     DecodeDataIntoPlayback(data: Buffer): number;
+
+    InputInitAndStartStream(): number;
+    EncodeRecordingIntoData(): Buffer;
 };
 
 class Rehearse20 {
@@ -32,7 +36,15 @@ class Rehearse20 {
 
     DecodeDataIntoPlayback (data: Buffer) {
         return this._addonInstance.DecodeDataIntoPlayback(data);
-    }    
+    }
+    
+    InputInitAndStartStream() {
+        return this._addonInstance.InputInitAndStartStream();
+    }
+
+    EncodeRecordingIntoData() {
+        return this._addonInstance.EncodeRecordingIntoData();
+    }
 
     // private members
     private _addonInstance: IRehearse20Native;

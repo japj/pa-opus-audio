@@ -2,6 +2,7 @@
 
 #include <napi.h>
 #include "paDecodeOutStream.h"
+#include "paEncodeInStream.h"
 #include "paStreamCommon.h"
 
 class Rehearse20 : public Napi::ObjectWrap<Rehearse20>
@@ -19,7 +20,11 @@ public:
     Napi::Value OutputInitAndStartStream(const Napi::CallbackInfo& info);
     Napi::Value DecodeDataIntoPlayback(const Napi::CallbackInfo& info);
 
+    Napi::Value InputInitAndStartStream(const Napi::CallbackInfo& info);
+    Napi::Value EncodeRecordingIntoData(const Napi::CallbackInfo& info);
+
 private:
     std::string _greeterName;
     paDecodeOutStream output;
+    paEncodeInStream input;
 };
