@@ -5,7 +5,9 @@
 
 class paDecodeOutStream
 {
+
 private:
+
     /* BEGIN data for playback callback*/
     /*  Ring buffer (FIFO) for "communicating" towards audio callback */
     PaUtilRingBuffer    rBufToRT;
@@ -33,7 +35,9 @@ private:
 
     PaStreamParameters outputParameters;
     /* */
+
 public:
+
     paDecodeOutStream(/* args */);
     ~paDecodeOutStream();
 
@@ -49,8 +53,8 @@ public:
 
     /* TODO: some of these functions are here due to the move in progres and might not end up as part of the final API */
     int GetRingBufferWriteAvailable(); // usefull for diagnostics
-private:
 
+private:
 
     /* Packets must be passed into the decoder serially and in the correct order for a correct decode. Lost packets can be replaced with loss concealment by calling the decoder with a null pointer and zero length for the missing packet.
        In the case of PLC (data==NULL) or FEC (decode_fec=1), then frame_size needs to be exactly the duration of audio that is missing
@@ -62,6 +66,7 @@ private:
             int frame_size,
             int decode_fec
         );
+
     int OpusDecode(
             const unsigned char *data,
             opus_int32 len,
@@ -69,10 +74,13 @@ private:
             int frame_size,
             int decode_fec
         );
+
     ring_buffer_size_t WriteRingBuffer( const void *data, ring_buffer_size_t elementCount );
 
     /* INTERNAL */
+
 public:
+
     /* called by low level callback , this needs to be public else it can't access it */
     int paOutputCallback( const void*                     inputBuffer,
                           void*                           outputBuffer,
@@ -81,9 +89,11 @@ public:
 			              PaStreamCallbackFlags           statusFlags);
 
 private:
+
     // internal methods that should not be called from client code, relates to move in progress
     int InitPaOutputData();
     PaError ProtoOpenOutputStream(PaDeviceIndex device = paDefaultDevice);
+
 };
 
 #endif

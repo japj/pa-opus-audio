@@ -45,7 +45,7 @@ int paDecodeOutStream::InitPaOutputData()
     int err;
 
     long writeDataBufElementCount = this->bufferElements;
-    long writeSampleSize = Pa_GetSampleSize(sampleFormat);
+    long writeSampleSize = Pa_GetSampleSize(this->sampleFormat);
     long bufferSize = writeSampleSize * writeDataBufElementCount;
     this->rBufToRTData = ALLIGNEDMALLOC(bufferSize);
     PaUtil_InitializeRingBuffer(&this->rBufToRT, writeSampleSize, writeDataBufElementCount, this->rBufToRTData);
@@ -194,7 +194,7 @@ int paDecodeOutStream::InitForDevice(PaDeviceIndex device)
     pErr = ProtoOpenOutputStream(device);
     PaCHK("ProtoOpenOutputStream", pErr);
 
-    return 0;
+    return pErr;
 }
 
 int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int dec)
