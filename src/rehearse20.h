@@ -27,4 +27,6 @@ private:
     std::string _greeterName;
     paDecodeOutStream output;
     paEncodeInStream input;
+    int encodeBufferSize;
+    uint8_t *encodeBuffer;
 };

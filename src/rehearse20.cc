@@ -116,6 +116,10 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo& info)
     if (result == 0)
     {
         result = input.InitForDevice();
+
+        encodeBufferSize = input.GetMaxEncodingBufferSize();
+        encodeBuffer = (uint8_t *)ALLIGNEDMALLOC(encodeBufferSize);
+
         if (result == 0)
         {
             result = input.StartStream();
@@ -129,7 +133,18 @@ Napi::Value Rehearse20::EncodeRecordingIntoData(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
 
-    return Napi::Number::New(env, 0);
+    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize);
+    if (encodedPacketSize > 0)
+    {
+        // TODO: busy looping, needs API design based on notification/callbacks 
+
+        Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, this->encodeBuffer, encodedPacketSize);
+        return buffer;
+    }
+    else {
+        // return NULL object
+        return env.Null();
+    }
 }
 
 

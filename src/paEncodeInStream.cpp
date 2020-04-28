@@ -203,9 +203,16 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
 
     // TODO: design API
     
+    ring_buffer_size_t availableInInputBuffer = this->GetRingBufferReadAvailable();
+    if (availableInInputBuffer < opusMaxFrameSize)
+    {
+        // don' try to read/encode if no full opus frame is available;
+        return 0;
+    }
 
     // can only run opus encoding/decoding on 48000 samplerate
     if (sampleRate == 48000) {
+        
         framesRead = this->ReadRingBuffer(&this->rBufFromRT, this->opusEncodeBuffer, opusMaxFrameSize);
 
         // use float32 or int16 opus encoder/decoder
@@ -229,10 +236,12 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     {
         // only support encoding/decoding with opus
         // so for now only treat this as "pass-through" audio
-        encodedPacketSize = framesRead * this->frameSizeBytes;
+        encodedPacketSize = opusMaxFrameSize * this->frameSizeBytes;
         if (encodedPacketSize <= len)
         {
             framesRead = this->ReadRingBuffer(&this->rBufFromRT, data, opusMaxFrameSize);
+
+            // TODO framesRead should be equal to opusMaxFrameSize
         }
         else {
             // if buffer does not fit, give error code back
@@ -241,4 +250,9 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     }
     
     return encodedPacketSize;
+}
+
+int paEncodeInStream::GetMaxEncodingBufferSize()
+{
+    return this->frameSizeBytes * this->opusMaxFrameSize;
 }
