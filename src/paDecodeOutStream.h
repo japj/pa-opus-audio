@@ -16,9 +16,9 @@ private:
     int                 frameSizeBytes;
     int                 channels;
     OpusDecoder*        decoder;
-    /* END data for playback opus decoder */
     void*               opusDecodeBuffer;
     int                 opusMaxFrameSize;
+    /* END data for playback opus decoder */
     
     /* PaStream info */
     PaStream *stream;
@@ -74,7 +74,7 @@ private:
     /* INTERNAL */
 public:
     /* called by low level callback , this needs to be public else it can't access it */
-    int paOutputCallback( const void*                    inputBuffer,
+    int paOutputCallback( const void*                     inputBuffer,
                           void*                           outputBuffer,
                           unsigned long                   framesPerBuffer,
 			              const PaStreamCallbackTimeInfo* timeInfo,
@@ -85,7 +85,5 @@ private:
     int InitPaOutputData();
     PaError ProtoOpenOutputStream(PaDeviceIndex device = paDefaultDevice);
 };
-
-
 
 #endif

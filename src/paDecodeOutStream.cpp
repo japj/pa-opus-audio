@@ -1,8 +1,6 @@
 #include <memory.h>
 #include <stdio.h>
-
 #include "paDecodeOutStream.h"
-
 
 /* This routine will be called by the PortAudio engine when audio is needed.
 ** It may called at interrupt level on some machines so don't do anything
@@ -66,6 +64,7 @@ int paDecodeOutStream::InitPaOutputData()
 
     return 0;
 }
+
 int paDecodeOutStream::paOutputCallback( 
                             const void*                    inputBuffer,
                             void*                           outputBuffer,
