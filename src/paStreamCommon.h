@@ -19,12 +19,14 @@
 #include "portaudio.h"
 #include "pa_ringbuffer.h"
 
-#define PaCHK(call, r) { \
-	if (r < 0) { \
-		paerror(call, r); \
-		return -1; \
-	} \
-}
+#define PaCHK(call, r)        \
+	{                         \
+		if (r < 0)            \
+		{                     \
+			paerror(call, r); \
+			return -1;        \
+		}                     \
+	}
 
 int setupPa();
 int protoring();

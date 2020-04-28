@@ -6,33 +6,33 @@
 ** It may called at interrupt level on some machines so don't do anything
 ** that could mess up the system like calling malloc() or free().
 */
-static int paStaticOutputCallback(const void*                    inputBuffer,
-                          void*                           outputBuffer,
-                          unsigned long                   framesPerBuffer,
-			              const PaStreamCallbackTimeInfo* timeInfo,
-			              PaStreamCallbackFlags           statusFlags,
-                          void*                           userData)
+static int paStaticOutputCallback(const void *inputBuffer,
+                                  void *outputBuffer,
+                                  unsigned long framesPerBuffer,
+                                  const PaStreamCallbackTimeInfo *timeInfo,
+                                  PaStreamCallbackFlags statusFlags,
+                                  void *userData)
 {
-    paDecodeOutStream *data = (paDecodeOutStream*)userData;
-    
+    paDecodeOutStream *data = (paDecodeOutStream *)userData;
+
     /* call the paDecodeOutStream object counterpart */
     return data->paOutputCallback(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
 }
 
-paDecodeOutStream::paDecodeOutStream(/* args */) 
+paDecodeOutStream::paDecodeOutStream(/* args */)
 {
-    sampleRate                      = 48000;    // opus only allows certain sample rates for encoding
-    sampleFormat                    = paInt16;  //paFloat32 or paInt16;
-    channels                        = 1;        //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
-                                                // 2 gives garbled sound?
-    bufferElements                  = 4096;     // TODO: calculate optimal ringbuffer size
-                                                // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
-    paCallbackFramesPerBuffer       = 64;       /* since opus decodes 120 frames, this is closests to how our latency is going to be
+    sampleRate = 48000;             // opus only allows certain sample rates for encoding
+    sampleFormat = paInt16;         //paFloat32 or paInt16;
+    channels = 1;                   //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
+                                    // 2 gives garbled sound?
+    bufferElements = 4096;          // TODO: calculate optimal ringbuffer size
+                                    // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
+    paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                                 // frames per buffer for OS Audio buffer*/
-    opusMaxFrameSize                = 120;      // 2.5ms@48kHz number of samples per channel in the input signal
-    
+    opusMaxFrameSize = 120;         // 2.5ms@48kHz number of samples per channel in the input signal
+
     //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
-						                        // for better analysis of the audio I am sending with 60ms from opusrtp
+    // for better analysis of the audio I am sending with 60ms from opusrtp
 }
 
 paDecodeOutStream::~paDecodeOutStream()
@@ -51,11 +51,13 @@ int paDecodeOutStream::InitPaOutputData()
     PaUtil_InitializeRingBuffer(&this->rBufToRT, writeSampleSize, writeDataBufElementCount, this->rBufToRTData);
     this->frameSizeBytes = writeSampleSize;
 
-    if (this->sampleRate == 48000) {
+    if (this->sampleRate == 48000)
+    {
         this->decoder = opus_decoder_create(this->sampleRate, this->channels, &err);
-        if (this->decoder == NULL) {
+        if (this->decoder == NULL)
+        {
             fprintf(stderr, "opus_decoder_create: %s\n",
-                opus_strerror(err));
+                    opus_strerror(err));
             return -1;
         }
     }
@@ -65,14 +67,14 @@ int paDecodeOutStream::InitPaOutputData()
     return 0;
 }
 
-int paDecodeOutStream::paOutputCallback( 
-                            const void*                    inputBuffer,
-                            void*                           outputBuffer,
-                            unsigned long                   framesPerBuffer,
-                            const PaStreamCallbackTimeInfo* timeInfo,
-                            PaStreamCallbackFlags           statusFlags)
+int paDecodeOutStream::paOutputCallback(
+    const void *inputBuffer,
+    void *outputBuffer,
+    unsigned long framesPerBuffer,
+    const PaStreamCallbackTimeInfo *timeInfo,
+    PaStreamCallbackFlags statusFlags)
 {
-    (void) inputBuffer; /* Prevent "unused variable" warnings. */
+    (void)inputBuffer; /* Prevent "unused variable" warnings. */
 
     /* Reset output data first */
     memset(outputBuffer, 0, framesPerBuffer * this->channels * this->frameSizeBytes);
@@ -80,9 +82,10 @@ int paDecodeOutStream::paOutputCallback(
     unsigned long availableInReadBuffer = (unsigned long)PaUtil_GetRingBufferReadAvailable(&this->rBufToRT);
     ring_buffer_size_t actualFramesRead = 0;
 
-    if (availableInReadBuffer >= framesPerBuffer) {
+    if (availableInReadBuffer >= framesPerBuffer)
+    {
         actualFramesRead = PaUtil_ReadRingBuffer(&this->rBufToRT, outputBuffer, framesPerBuffer);
-        
+
         // if actualFramesRead < framesPerBuffer then we read not enough data
     }
 
@@ -96,28 +99,27 @@ PaError paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
     {
         device = Pa_GetDefaultOutputDevice();
     }
-	
+
     outputParameters.device = device;
-	outputParameters.channelCount = this->channels;
-	outputParameters.sampleFormat = this->sampleFormat;
-	outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
-	outputParameters.hostApiSpecificStreamInfo = NULL;
+    outputParameters.channelCount = this->channels;
+    outputParameters.sampleFormat = this->sampleFormat;
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
 
-	PaError err;
-	err = Pa_OpenStream(	&this->stream,
-							NULL,
-							&outputParameters,
-							this->sampleRate,
-							this->paCallbackFramesPerBuffer,
-							paNoFlag,
-							paStaticOutputCallback,
-							this
-	);
-	PaCHK("ProtoOpenOutputStream", err);
+    PaError err;
+    err = Pa_OpenStream(&this->stream,
+                        NULL,
+                        &outputParameters,
+                        this->sampleRate,
+                        this->paCallbackFramesPerBuffer,
+                        paNoFlag,
+                        paStaticOutputCallback,
+                        this);
+    PaCHK("ProtoOpenOutputStream", err);
 
-	printf("ProtoOpenOutputStream information:\n");
-	log_pa_stream_info(this->stream, &outputParameters);
-	return err;
+    printf("ProtoOpenOutputStream information:\n");
+    log_pa_stream_info(this->stream, &outputParameters);
+    return err;
 }
 
 int paDecodeOutStream::GetRingBufferWriteAvailable()
@@ -126,42 +128,40 @@ int paDecodeOutStream::GetRingBufferWriteAvailable()
 }
 
 int paDecodeOutStream::opusDecodeFloat(
-            const unsigned char *data,
-            opus_int32 len,
-            float *pcm,
-            int frame_size,
-            int decode_fec
-        )
+    const unsigned char *data,
+    opus_int32 len,
+    float *pcm,
+    int frame_size,
+    int decode_fec)
 {
     // TODO: Number of decoded samples or Error codes
     return opus_decode_float(this->decoder,
-                                                    data,
-                                                    len,
-                                                    pcm,
-                                                    frame_size,
-                                                    0); // request in-band forward error correction
-                                                        // TODO: this is 1 in rx when no packet was received/lost?
+                             data,
+                             len,
+                             pcm,
+                             frame_size,
+                             0); // request in-band forward error correction
+                                 // TODO: this is 1 in rx when no packet was received/lost?
 }
 
 int paDecodeOutStream::OpusDecode(
-            const unsigned char *data,
-            opus_int32 len,
-            opus_int16 *pcm,
-            int frame_size,
-            int decode_fec
-        )
+    const unsigned char *data,
+    opus_int32 len,
+    opus_int16 *pcm,
+    int frame_size,
+    int decode_fec)
 {
     // TODO: Number of decoded samples or Error codes
     return opus_decode(this->decoder,
-                                                    data,
-                                                    len,
-                                                    pcm,
-                                                    frame_size,
-                                                    0); // request in-band forward error correction
-                                                        // TODO: this is 1 in rx when no packet was received/lost?
+                       data,
+                       len,
+                       pcm,
+                       frame_size,
+                       0); // request in-band forward error correction
+                           // TODO: this is 1 in rx when no packet was received/lost?
 }
 
-ring_buffer_size_t paDecodeOutStream::WriteRingBuffer( const void *data, ring_buffer_size_t elementCount )
+ring_buffer_size_t paDecodeOutStream::WriteRingBuffer(const void *data, ring_buffer_size_t elementCount)
 {
     return PaUtil_WriteRingBuffer(&this->rBufToRT, data, elementCount);
 }
@@ -186,11 +186,12 @@ int paDecodeOutStream::InitForDevice(PaDeviceIndex device)
     PaError pErr;
     int err;
     err = InitPaOutputData();
-    if (err != 0){
+    if (err != 0)
+    {
         printf("InitPaOutputData error\n");
         return -1;
     }
-    
+
     pErr = ProtoOpenOutputStream(device);
     PaCHK("ProtoOpenOutputStream", pErr);
 
@@ -203,28 +204,30 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
     int toWriteFrameCount;
     ring_buffer_size_t framesWritten;
 
-    if (sampleRate == 48000) {
+    if (sampleRate == 48000)
+    {
         writeBufferPtr = this->opusDecodeBuffer;
 
-        if (sampleFormat == paFloat32) {
-            toWriteFrameCount = this->opusDecodeFloat(  (unsigned char*)data,
-                                                        len,
-                                                        (float *)this->opusDecodeBuffer,
-                                                        this->opusMaxFrameSize,
-                                                        dec);
+        if (sampleFormat == paFloat32)
+        {
+            toWriteFrameCount = this->opusDecodeFloat((unsigned char *)data,
+                                                      len,
+                                                      (float *)this->opusDecodeBuffer,
+                                                      this->opusMaxFrameSize,
+                                                      dec);
         }
         else
         {
             // we assume paInt16;
-            toWriteFrameCount = this->OpusDecode(   (unsigned char*)data,
-                                                    len,
-                                                    (opus_int16*)this->opusDecodeBuffer,
-                                                    this->opusMaxFrameSize,
-                                                    dec);
+            toWriteFrameCount = this->OpusDecode((unsigned char *)data,
+                                                 len,
+                                                 (opus_int16 *)this->opusDecodeBuffer,
+                                                 this->opusMaxFrameSize,
+                                                 dec);
         }
-        
     }
-    else {
+    else
+    {
         // only support encode/decoding with opus
         // so for now treat this as "pass-through" audio
         writeBufferPtr = data;

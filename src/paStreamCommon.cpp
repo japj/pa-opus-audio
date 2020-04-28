@@ -12,25 +12,25 @@
 
 void paerror(const char *msg, int r)
 {
-	fputs(msg, stderr);
-	fputs(": ", stderr);
-	fputs(Pa_GetErrorText(r), stderr);
-	fputc('\n', stderr);
+    fputs(msg, stderr);
+    fputs(": ", stderr);
+    fputs(Pa_GetErrorText(r), stderr);
+    fputc('\n', stderr);
 }
 
 void log_pa_stream_info(PaStream *stream, PaStreamParameters *params)
 {
-	const PaDeviceInfo *deviceInfo;
-	deviceInfo = Pa_GetDeviceInfo(params->device);
-	const PaStreamInfo *streamInfo;
-	streamInfo = Pa_GetStreamInfo(stream);
+    const PaDeviceInfo *deviceInfo;
+    deviceInfo = Pa_GetDeviceInfo(params->device);
+    const PaStreamInfo *streamInfo;
+    streamInfo = Pa_GetStreamInfo(stream);
 
-	printf("DeviceId:         %d (%s)\n", params->device, deviceInfo->name);
-	printf("ChannelCount:     %d\n", params->channelCount);
-	printf("SuggestedLatency: %f\n", params->suggestedLatency);
-	printf("InputLatency:     %20f (%5.f samples)\n", streamInfo->inputLatency, streamInfo->inputLatency * streamInfo->sampleRate);
-	printf("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, streamInfo->outputLatency * streamInfo->sampleRate);
-	printf("SampleRate:       %.f\n", streamInfo->sampleRate);
+    printf("DeviceId:         %d (%s)\n", params->device, deviceInfo->name);
+    printf("ChannelCount:     %d\n", params->channelCount);
+    printf("SuggestedLatency: %f\n", params->suggestedLatency);
+    printf("InputLatency:     %20f (%5.f samples)\n", streamInfo->inputLatency, streamInfo->inputLatency * streamInfo->sampleRate);
+    printf("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, streamInfo->outputLatency * streamInfo->sampleRate);
+    printf("SampleRate:       %.f\n", streamInfo->sampleRate);
 }
 
 /*
@@ -49,11 +49,11 @@ int setupPa()
     PaError err;
     /* PortAudio setup*/
     err = Pa_Initialize();
-	if (err != paNoError)
-	{
-		printf("PortAudio error: %s \n", Pa_GetErrorText(err));
-		return -1;
-	}
+    if (err != paNoError)
+    {
+        printf("PortAudio error: %s \n", Pa_GetErrorText(err));
+        return -1;
+    }
     initDone = true;
     return 0;
 }
@@ -62,16 +62,16 @@ int setupPa()
 
 int protoring()
 {
-	PaError err;
-    unsigned int rate = 48000; //48000 enables opus enc/decoding, but some devices are 44100 which results in resampling + bigger input latency
+    PaError err;
+    unsigned int rate = 48000;             //48000 enables opus enc/decoding, but some devices are 44100 which results in resampling + bigger input latency
     PaSampleFormat sampleFormat = paInt16; //paFloat32 or paInt16;
-    long bufferElements = 4096; // TODO: calculate optimal ringbuffer size
+    long bufferElements = 4096;            // TODO: calculate optimal ringbuffer size
     unsigned int inputChannels = 1;
-    int opusMaxFrameSize = 120; // 2.5ms@48kHz number of samples per channel in the input signal
+    int opusMaxFrameSize = 120;         // 2.5ms@48kHz number of samples per channel in the input signal
     int paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                         // frames per buffer for OS Audio buffer*/
 
-    PaDeviceIndex  inputDevice  = Pa_GetDefaultInputDevice();
+    PaDeviceIndex inputDevice = Pa_GetDefaultInputDevice();
 
     /* record/play transfer buffer */
     long transferElementCount = bufferElements;
@@ -79,7 +79,7 @@ int protoring()
     long bufferSize = transferSampleSize * transferElementCount;
     void *transferBuffer = ALLIGNEDMALLOC(bufferSize);
     void *opusEncodeBuffer = ALLIGNEDMALLOC(bufferSize);
-    
+
     /* setup output device and stream */
     paDecodeOutStream *outStream = new paDecodeOutStream();
     err = outStream->InitForDevice();
@@ -103,9 +103,10 @@ int protoring()
 
 #define DISPLAY_STATS 0
 
-    while (inputStreamActive && outputStreamActive) {
-        ring_buffer_size_t availableInInputBuffer   = inStream->GetRingBufferReadAvailable();
-        ring_buffer_size_t availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
+    while (inputStreamActive && outputStreamActive)
+    {
+        ring_buffer_size_t availableInInputBuffer = inStream->GetRingBufferReadAvailable();
+        ring_buffer_size_t availableToOutputBuffer = outStream->GetRingBufferWriteAvailable();
 
         inputStreamActive = inStream->IsStreamActive();
         outputStreamActive = outStream->IsStreamActive();
@@ -115,7 +116,7 @@ int protoring()
         printf("\n");
 #endif
 
-/*
+        /*
     TODO: refactor into input encoding API
 
         // transfer from recording to playback by encode/decoding opus signals
