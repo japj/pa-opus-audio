@@ -63,22 +63,15 @@ int setupPa()
 int protoring()
 {
     PaError err;
-    unsigned int rate = 48000;             //48000 enables opus enc/decoding, but some devices are 44100 which results in resampling + bigger input latency
     PaSampleFormat sampleFormat = paInt16; //paFloat32 or paInt16;
     long bufferElements = 4096;            // TODO: calculate optimal ringbuffer size
-    unsigned int inputChannels = 1;
     int opusMaxFrameSize = 120;         // 2.5ms@48kHz number of samples per channel in the input signal
-    int paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
-                                        // frames per buffer for OS Audio buffer*/
-
-    PaDeviceIndex inputDevice = Pa_GetDefaultInputDevice();
 
     /* record/play transfer buffer */
     long transferElementCount = bufferElements;
     long transferSampleSize = Pa_GetSampleSize(sampleFormat);
     long bufferSize = transferSampleSize * transferElementCount;
     void *transferBuffer = ALLIGNEDMALLOC(bufferSize);
-    void *opusEncodeBuffer = ALLIGNEDMALLOC(bufferSize);
 
     /* setup output device and stream */
     paDecodeOutStream *outStream = new paDecodeOutStream();
@@ -116,46 +109,24 @@ int protoring()
         printf("\n");
 #endif
 
-        /*
-    TODO: refactor into input encoding API
-
         // transfer from recording to playback by encode/decoding opus signals
         // loop through input buffer in chunks of opusMaxFrameSize
         while (availableInInputBuffer >= opusMaxFrameSize)
         {
-            ring_buffer_size_t framesWritten;
-            ring_buffer_size_t framesRead;
-
-            // TODO: design API
-            framesRead = PaUtil_ReadRingBuffer(&inputData->rBufFromRT, transferBuffer, opusMaxFrameSize);
-
-            // can only run opus encoding/decoding on 48000 samplerate
-            if (rate == 48000) {
-                // use float32 or int16 opus encoder/decoder
-                if (sampleFormat == paFloat32) {
-                    // encode audio
-                    int encodedPacketSize =   opus_encode_float(inputData->encoder, 
-                                                    (float*)transferBuffer, 
-                                                    opusMaxFrameSize, 
-                                                    (unsigned char *)opusEncodeBuffer, 
-                                                    bufferSize);
-                    // decode audio
-                    framesWritten = outStream->DecodeDataIntoPlayback(opusEncodeBuffer, encodedPacketSize);
-                } else {
-                    // encode audio
-                    int encodedPacketSize =   opus_encode(inputData->encoder, 
-                                                    (opus_int16*)transferBuffer, 
-                                                    opusMaxFrameSize, 
-                                                    (unsigned char *)opusEncodeBuffer, 
-                                                    bufferSize);
-                    // decode audio
-                    framesWritten =outStream->DecodeDataIntoPlayback(opusEncodeBuffer, encodedPacketSize);
-                }
-                
+            ring_buffer_size_t framesWritten=0;
+            int encodedPacketSize = inStream->EncodeRecordingIntoData(transferBuffer, opusMaxFrameSize);
+            
+            if (encodedPacketSize > 0)
+            {
+                // decode audio
+                framesWritten = outStream->DecodeDataIntoPlayback(transferBuffer, encodedPacketSize);
+            } 
+            else
+            {
+                // error
+                printf("error EncodeRecordingIntoData packetSize:%d\n", encodedPacketSize);
             }
-            else {
-                framesWritten = outStream->DecodeDataIntoPlayback(transferBuffer, framesRead);
-            }
+
 
 #if DISPLAY_STATS
             printf("In->Output availableInInputBuffer: %5d, encodedPacketSize: %5d, toWriteFrameCount: %5d, framesWritten: %5d\n", 
@@ -168,7 +139,6 @@ int protoring()
             availableInInputBuffer   = inStream->GetRingBufferReadAvailable(); 
             availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
         }
-        */
 
         usleep(500);
     }

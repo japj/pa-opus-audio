@@ -47,6 +47,8 @@ public:
     PaError IsStreamActive();
     PaError StopStream();
 
+    int EncodeRecordingIntoData(void *data, opus_int32 len);
+
     /* TODO: some of these functions are here due to the move in progres and might not end up as part of the final API */
     int GetRingBufferReadAvailable(); // usefull for diagnostics
 
