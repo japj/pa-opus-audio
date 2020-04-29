@@ -90,7 +90,11 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
 
     // if we can't write data to ringbuffer, stop recording for now to early detect issues
     // TODO: determine what best to do here
-    return paAbort;
+    // hook callback into Pa_SetStreamFinishedCallback so we get triggers if the stream is ended
+
+    // ensure for now that audio recording will continue forever
+    // e.g. during testing selecting output on console could block consuming callbacks
+    return paContinue; // paAbort;
 }
 
 PaError paEncodeInStream::ProtoOpenInputStream(PaDeviceIndex device)
