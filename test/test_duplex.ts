@@ -5,29 +5,51 @@ const instance = new Rehearse20("mr-yeoman");
 instance.OutputInitAndStartStream();
 instance.InputInitAndStartStream();
 
-let total=0;
+let contentCount = 0;
+let emptyCount = 0;
 
-function myFunc(arg:Rehearse20) {
+let totalLength = 0;
+
+function myFunc(arg: Rehearse20) {
+
     var b = arg.EncodeRecordingIntoData();
-    if (b)
-    {
-        total+=b.byteLength;
-        console.log(`got buffer size ${b.byteLength}, total: ${total}`);
+    if (b) {
+        contentCount++;
+        totalLength += b.byteLength;
+
         arg.DecodeDataIntoPlayback(b);
+
+        if (contentCount % 100 == 0) {
+            console.log(`contentCount: ${contentCount}, totalLength: ${totalLength}`);
+        }
     }
-    else{
-        console.log(`got empty data, total was ${total}`);
+    else {
+        emptyCount++;
+
+        if (contentCount % 100 == 0) {
+            console.log(`emptyCount: ${emptyCount}`);
+        }
     }
-    
 }
 
-// TODO: recoording seems to work, for a limited amount of time and then it stops
+let useTimer = false; // use timer or while loop for record/playback
 
-let timer = setInterval( myFunc, 
-            2, // every 2 ms
-            instance);
+if (useTimer)
+{
+    // duplex record/playback with timer does not give good audio quality/latency (as expected)
+    let timer = setInterval(myFunc,
+        1, // every 2 ms
+        instance);
+}
+else
+{
+    // duplex record/playback sounds perfect, however due to 'polling' it has a high cpu usage
+    while (true) {
+        myFunc(instance);
+    }
+}
 
 console.log('Welcome to My Console,');
-setTimeout(function() {
+setTimeout(function () {
     console.log('Blah blah blah blah extra-blah');
 }, 3000000);
