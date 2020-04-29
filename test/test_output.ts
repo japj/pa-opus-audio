@@ -16,6 +16,34 @@ server.on('error',function(error:string){
 
 let rtpClients = new Map<string, Rehearse20>();
 
+let contentCount = 0;
+let emptyCount = 0;
+let totalLength = 0;
+
+/** this is for recording mic and playback on own output device so you can hear what you say */
+instance.SetEncodedFrameAvailableCallBack(function (b: Buffer) {
+  if (b) {
+      contentCount++;
+      totalLength += b.byteLength;
+
+      instance.DecodeDataIntoPlayback(b);
+
+      if (contentCount % 100 == 0) {
+          console.log(`contentCount: ${contentCount}, totalLength: ${totalLength}`);
+      }
+  }
+  else {
+      emptyCount++;
+
+      if (contentCount % 100 == 0) {
+          console.log(`emptyCount: ${emptyCount}`);
+      }
+  }
+});
+
+instance.OutputInitAndStartStream();
+instance.InputInitAndStartStream();
+
 // emits on new datagram msg
 server.on('message',function(msg: Buffer, info: udp.RemoteInfo) {
     let clientKey = `${info.address}:${info.port}`;
