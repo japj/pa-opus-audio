@@ -60,32 +60,91 @@ int setupPa()
 
 //TODO: teardownPa
 
+class HandleRecordingCallback
+{
+    // callback handler that is called from paEncodeInstream to notify that an opus frame is available
+    static void callbackHandler(void *userData)
+    {
+        HandleRecordingCallback *p = (HandleRecordingCallback *)userData;
+        p->HandleOneOpusFrameAvailable();
+    }
+
+public:
+    HandleRecordingCallback(paEncodeInStream *input, paDecodeOutStream *output)
+    {
+        in = input;
+        out = output;
+        bufferSize = in->GetMaxEncodingBufferSize();
+        transferBuffer = ALLIGNEDMALLOC(bufferSize);
+        cbCount = 0;
+        cbCountErrors = 0;
+        totalEncodedPacketSize = 0;
+        totalFramesWritten = 0;
+
+        // register callback handler
+        in->setUserCallbackOpusFrameAvailable(callbackHandler, this);
+    }
+
+    void HandleOneOpusFrameAvailable()
+    {
+        cbCount++;
+        ring_buffer_size_t framesWritten = 0;
+        int encodedPacketSize = in->EncodeRecordingIntoData(transferBuffer, bufferSize);
+
+        if (encodedPacketSize > 0)
+        {
+            //printf("going to DecodeDataIntoPlayback: %d\n", encodedPacketSize);
+            // decode audio
+            framesWritten = out->DecodeDataIntoPlayback(transferBuffer, encodedPacketSize);
+
+            totalFramesWritten += framesWritten;
+            totalEncodedPacketSize += encodedPacketSize;
+        }
+        else
+        {
+            cbCountErrors++;
+        }
+
+        // this should happen once every second due to 2.5ms frame
+        if (cbCount % 400 == 0)
+        {
+            // error
+            printf("HandleOneOpusFrameAvailable cbCount: %5d, cbErrors: %5d, framesWritten:%5d, encodedSize:%5d \n",
+                   cbCount, cbCountErrors, totalFramesWritten, totalEncodedPacketSize);
+        }
+    }
+
+private:
+    paEncodeInStream *in;
+    paDecodeOutStream *out;
+    int bufferSize;
+    void *transferBuffer;
+    int cbCount;
+    int cbCountErrors;
+    int totalEncodedPacketSize;
+    int totalFramesWritten;
+};
+
 int protoring()
 {
     PaError err;
-    PaSampleFormat sampleFormat = paInt16; //paFloat32 or paInt16;
-    long bufferElements = 4096;            // TODO: calculate optimal ringbuffer size
-    int opusMaxFrameSize = 120;         // 2.5ms@48kHz number of samples per channel in the input signal
 
-    /* record/play transfer buffer */
-    long transferElementCount = bufferElements;
-    long transferSampleSize = Pa_GetSampleSize(sampleFormat);
-    long bufferSize = transferSampleSize * transferElementCount;
-    void *transferBuffer = ALLIGNEDMALLOC(bufferSize);
-
-    /* setup output device and stream */
+    /* setup in/out devices */
     paDecodeOutStream *outStream = new paDecodeOutStream();
     err = outStream->InitForDevice();
     PaCHK("outStream->InitForDevice", err);
 
-    printf("Pa_StartStream Output\n");
-    err = outStream->StartStream();
-    PaCHK("Pa_StartStream Output", err);
-
-    /* setup input device and stream */
     paEncodeInStream *inStream = new paEncodeInStream();
     err = inStream->InitForDevice();
     PaCHK("ProtoOpenInputStream", err);
+
+    // setup callback handler
+    HandleRecordingCallback handler(inStream, outStream);
+
+    /* start out/in streams */
+    printf("Pa_StartStream Output\n");
+    err = outStream->StartStream();
+    PaCHK("Pa_StartStream Output", err);
 
     printf("Pa_StartStream Input\n");
     err = inStream->StartStream();
@@ -93,9 +152,6 @@ int protoring()
 
     int inputStreamActive = 1;
     int outputStreamActive = 1;
-
-#define DISPLAY_STATS 0
-
     while (inputStreamActive && outputStreamActive)
     {
         ring_buffer_size_t availableInInputBuffer = inStream->GetRingBufferReadAvailable();
@@ -103,45 +159,12 @@ int protoring()
 
         inputStreamActive = inStream->IsStreamActive();
         outputStreamActive = outStream->IsStreamActive();
-#if DISPLAY_STATS
+
         printf("inputStreamActive: %5d, availableInInputBuffer: %5d ", inputStreamActive, availableInInputBuffer);
         printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, availableToOutputBuffer);
         printf("\n");
-#endif
 
-        // transfer from recording to playback by encode/decoding opus signals
-        // loop through input buffer in chunks of opusMaxFrameSize
-        while (availableInInputBuffer >= opusMaxFrameSize)
-        {
-            //printf("going to EncodeRecordingIntoData\n");
-            ring_buffer_size_t framesWritten=0;
-            int encodedPacketSize = inStream->EncodeRecordingIntoData(transferBuffer, bufferSize);
-            
-            if (encodedPacketSize > 0)
-            {
-                //printf("going to DecodeDataIntoPlayback: %d\n", encodedPacketSize);
-                // decode audio
-                framesWritten = outStream->DecodeDataIntoPlayback(transferBuffer, encodedPacketSize);
-            } 
-            else
-            {
-                // error
-                printf("error EncodeRecordingIntoData packetSize:%d\n", encodedPacketSize);
-            }
-
-
-            availableInInputBuffer   = inStream->GetRingBufferReadAvailable(); 
-            availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
-#if DISPLAY_STATS
-            printf("In->Output inAvail: %5d, outAvail: %5d, encoded: %5d, framesWritten: %5d\n", 
-                                availableInInputBuffer, 
-                                availableToOutputBuffer,
-                                encodedPacketSize,
-                                framesWritten);
-#endif
-        }
-
-        usleep(500);
+        sleep(1);
     }
 
     printf("Pa_StopStream Output\n");

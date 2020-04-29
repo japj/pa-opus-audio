@@ -34,6 +34,10 @@ paEncodeInStream::paEncodeInStream(/* args */)
 
     //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
     // for better analysis of the audio I am sending with 60ms from opusrtp
+
+    userDataCallbackOpusFrameAvailable = NULL;
+    userCallbackOpusFrameAvailable = NULL;
+    framesWrittenSinceLastCallback = 0;
 }
 
 paEncodeInStream::~paEncodeInStream()
@@ -85,6 +89,20 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
     {
         written = PaUtil_WriteRingBuffer(&this->rBufFromRT, inputBuffer, framesPerBuffer);
         // check if fully written?
+
+        framesWrittenSinceLastCallback += written;
+        // check if a full opus frame is available and notify if that is the case
+        // while loop here in case framesPerBuffer > opusMaxFrameSize, which means we should trigger multiple times
+        while (framesWrittenSinceLastCallback >= opusMaxFrameSize)
+        {
+            if (userCallbackOpusFrameAvailable)
+            {
+                // notify user that one opus frame is available
+                userCallbackOpusFrameAvailable(userDataCallbackOpusFrameAvailable);
+            }
+
+            framesWrittenSinceLastCallback -= opusMaxFrameSize;
+        }
         return paContinue;
     }
 
@@ -206,7 +224,7 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     ring_buffer_size_t framesRead;
 
     // TODO: design API
-    
+
     ring_buffer_size_t availableInInputBuffer = this->GetRingBufferReadAvailable();
     if (availableInInputBuffer < opusMaxFrameSize)
     {
@@ -215,25 +233,29 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     }
 
     // can only run opus encoding/decoding on 48000 samplerate
-    if (sampleRate == 48000) {
-        
+    if (sampleRate == 48000)
+    {
+
         framesRead = this->ReadRingBuffer(&this->rBufFromRT, this->opusEncodeBuffer, opusMaxFrameSize);
 
         // use float32 or int16 opus encoder/decoder
-        if (sampleFormat == paFloat32) {
+        if (sampleFormat == paFloat32)
+        {
             // encode audio
-            encodedPacketSize =   this->opusEncodeFloat( 
-                                            (float*)this->opusEncodeBuffer, 
-                                            opusMaxFrameSize, 
-                                            (unsigned char *)data, 
-                                            len);
-        } else {
+            encodedPacketSize = this->opusEncodeFloat(
+                (float *)this->opusEncodeBuffer,
+                opusMaxFrameSize,
+                (unsigned char *)data,
+                len);
+        }
+        else
+        {
             // encode audio
-            encodedPacketSize =   this->OpusEncode(
-                                            (opus_int16*)this->opusEncodeBuffer, 
-                                            opusMaxFrameSize, 
-                                            (unsigned char *)data, 
-                                            len);
+            encodedPacketSize = this->OpusEncode(
+                (opus_int16 *)this->opusEncodeBuffer,
+                opusMaxFrameSize,
+                (unsigned char *)data,
+                len);
         }
     }
     else
@@ -247,16 +269,23 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
 
             // TODO framesRead should be equal to opusMaxFrameSize
         }
-        else {
+        else
+        {
             // if buffer does not fit, give error code back
             encodedPacketSize = -1;
         }
     }
-    
+
     return encodedPacketSize;
 }
 
 int paEncodeInStream::GetMaxEncodingBufferSize()
 {
     return this->frameSizeBytes * this->opusMaxFrameSize;
+}
+
+void paEncodeInStream::setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback cb, void *userData)
+{
+    this->userCallbackOpusFrameAvailable = cb;
+    this->userDataCallbackOpusFrameAvailable = userData;
 }
