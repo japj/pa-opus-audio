@@ -1,16 +1,18 @@
 const addon = require('../build/Release/rehearse20-native');
 
-interface IRehearse20Native
-{
+
+interface IRehearse20Native {
     greet(strName: string): string;
     detect(): number;
     protoring(): number;
-    
+
     OutputInitAndStartStream(): number;
     DecodeDataIntoPlayback(data: Buffer): number;
 
     InputInitAndStartStream(): number;
-    EncodeRecordingIntoData(): Buffer;
+    //EncodeRecordingIntoData(): Buffer; // fully remove now that we have a callback interface
+
+    SetEncodedFrameAvailableCallBack(cb: Function): number;
 };
 
 class Rehearse20 {
@@ -18,32 +20,36 @@ class Rehearse20 {
         this._addonInstance = new addon.Rehearse20(name)
     }
 
-    greet (strName: string) {
+    greet(strName: string) {
         return this._addonInstance.greet(strName);
     }
 
-    detect () {
+    detect() {
         return this._addonInstance.detect();
     }
 
-    protoring () {
+    protoring() {
         return this._addonInstance.protoring();
     }
 
-    OutputInitAndStartStream () {
+    OutputInitAndStartStream() {
         return this._addonInstance.OutputInitAndStartStream();
     }
 
-    DecodeDataIntoPlayback (data: Buffer) {
+    DecodeDataIntoPlayback(data: Buffer) {
         return this._addonInstance.DecodeDataIntoPlayback(data);
     }
-    
+
     InputInitAndStartStream() {
         return this._addonInstance.InputInitAndStartStream();
     }
 
-    EncodeRecordingIntoData() {
+    /*EncodeRecordingIntoData() {
         return this._addonInstance.EncodeRecordingIntoData();
+    }*/
+
+    SetEncodedFrameAvailableCallBack(cb: Function) {
+        return this._addonInstance.SetEncodedFrameAvailableCallBack(cb);
     }
 
     // private members
