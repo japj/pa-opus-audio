@@ -113,13 +113,13 @@ int protoring()
         // loop through input buffer in chunks of opusMaxFrameSize
         while (availableInInputBuffer >= opusMaxFrameSize)
         {
-            printf("going to EncodeRecordingIntoData\n");
+            //printf("going to EncodeRecordingIntoData\n");
             ring_buffer_size_t framesWritten=0;
             int encodedPacketSize = inStream->EncodeRecordingIntoData(transferBuffer, bufferSize);
             
             if (encodedPacketSize > 0)
             {
-                printf("going to DecodeDataIntoPlayback: %d\n", encodedPacketSize);
+                //printf("going to DecodeDataIntoPlayback: %d\n", encodedPacketSize);
                 // decode audio
                 framesWritten = outStream->DecodeDataIntoPlayback(transferBuffer, encodedPacketSize);
             } 
@@ -130,16 +130,15 @@ int protoring()
             }
 
 
-#if DISPLAY_STATS
-            printf("In->Output availableInInputBuffer: %5d, encodedPacketSize: %5d, toWriteFrameCount: %5d, framesWritten: %5d\n", 
-                                availableInInputBuffer, 
-                                encodedPacketSize,
-                                toWriteFrameCount,
-                                framesWritten);
-#endif
-
             availableInInputBuffer   = inStream->GetRingBufferReadAvailable(); 
             availableToOutputBuffer  = outStream->GetRingBufferWriteAvailable();
+#if DISPLAY_STATS
+            printf("In->Output inAvail: %5d, outAvail: %5d, encoded: %5d, framesWritten: %5d\n", 
+                                availableInInputBuffer, 
+                                availableToOutputBuffer,
+                                encodedPacketSize,
+                                framesWritten);
+#endif
         }
 
         usleep(500);
