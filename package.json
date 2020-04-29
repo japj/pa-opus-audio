@@ -17,7 +17,11 @@
     "bugs": {
         "url": "https://github.com/japj/pa-opus-audio/issues"
     },
-    "engines": {},
+    "binary": {
+        "napi_versions": [
+            4
+        ]
+    },
     "dependencies": {
         "node-addon-api": "2.0.0",
         "node-gyp": "6.1.0"

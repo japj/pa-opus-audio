@@ -6,6 +6,12 @@ pa-opus-audio is a Node.js native addon for low latency PortAudio/Opus Audio Rec
 
 This is part of the "rehearse20" project and uses concepts and code from my [trx portaudio prototype](https://github.com/japj/trx).
 
+Required before installation:
+- ensure portaudio development packages are installed
+- ensure opus development packages are installed
+
+
+
 Current work will focus on getting this to end-to-end (recording/playback) state first before other work.
 
 Status:
