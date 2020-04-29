@@ -1,8 +1,30 @@
 {
-    "main": "lib/binding.js",
+    "name": "pa-opus-audio",
+    "description": "pa-opus-audio is a Node.js native addon for low latency PortAudio/Opus Audio Recording and Playback.",
+    "version": "0.1.0",
+    "author": "Jeroen Janssen <jeroen.janssen@gmail.com>",
+    "license": "MIT",
+    "keywords": [
+        "node-addon-api",
+        "portaudio",
+        "opus"
+    ],
+    "homepage": "https://github.com/japj/pa-opus-audio#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/japj/pa-opus-audio.git"
+    },
+    "bugs": {
+        "url": "https://github.com/japj/pa-opus-audio/issues"
+    },
+    "engines": {},
     "dependencies": {
-        "media-stream-library": "^7.0.3",
-        "node-addon-api": "*"
+        "node-addon-api": "2.0.0",
+        "node-gyp": "6.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^7.0.22",
+        "typescript": "^2.3.3"
     },
     "scripts": {
         "pretest": "tsc",
@@ -15,22 +37,6 @@
         "preoutput": "npm run build && tsc",
         "output": "node ./test/test_output.js"
     },
-    "gypfile": true,
-    "name": "pa-opus-audio",
-    "description": "pa-opus-audio is a Node.js native addon for low latency PortAudio/Opus Audio Recording and Playback.",
-    "version": "0.1.0",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/japj/pa-opus-audio.git"
-    },
-    "author": "",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/japj/pa-opus-audio/issues"
-    },
-    "homepage": "https://github.com/japj/pa-opus-audio#readme",
-    "devDependencies": {
-        "@types/node": "^7.0.22",
-        "typescript": "^2.3.3"
-    }
+    "main": "lib/binding.js",
+    "gypfile": true
 }
