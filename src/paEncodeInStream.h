@@ -8,6 +8,13 @@
  */
 typedef void paEncodeInStreamOpusFrameAvailableCallback(void *userData);
 
+typedef struct pAudioInputTiming
+{
+    PaTime timeStamp;     /**< The time when the first sample of the input buffer was captured at the ADC input */
+    PaTime currentTime;   /**< The time when the stream callback was invoked */
+    long sequence_number; /**< The sequence number of when this callback was invoked */
+} pAudioInputTiming;
+
 class paEncodeInStream
 {
 
@@ -16,6 +23,10 @@ private:
     /* Ring buffer (FIFO) for "communicating" from audio callback */
     PaUtilRingBuffer rBufFromRT;
     void *rBufFromRTData;
+    long sequence_number;
+
+    PaUtilRingBuffer rBufAudioTiming;
+    void *rBufAudioTimingData;
     /* END data for record callback*/
 
     /* BEGIN data for record opus encoder */
@@ -54,12 +65,14 @@ public:
     PaError IsStreamActive();
     PaError StopStream();
 
-    int EncodeRecordingIntoData(void *data, opus_int32 len);
+    int EncodeRecordingIntoData(void *data, opus_int32 len, pAudioInputTiming *timing);
 
     int GetMaxEncodingBufferSize();
 
     /* TODO: some of these functions are here due to the move in progres and might not end up as part of the final API */
     int GetRingBufferReadAvailable(); // usefull for diagnostics
+    int GetTimingDataReadAvailable();
+    int GetTimingDataWriteAvailable();
 
     void setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback cb, void *userData);
 

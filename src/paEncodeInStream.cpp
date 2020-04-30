@@ -38,6 +38,7 @@ paEncodeInStream::paEncodeInStream(/* args */)
     userDataCallbackOpusFrameAvailable = NULL;
     userCallbackOpusFrameAvailable = NULL;
     framesWrittenSinceLastCallback = 0;
+    sequence_number = 0;
 }
 
 paEncodeInStream::~paEncodeInStream()
@@ -55,6 +56,13 @@ int paEncodeInStream::InitPaInputData()
     this->rBufFromRTData = ALLIGNEDMALLOC(bufferSize);
     PaUtil_InitializeRingBuffer(&this->rBufFromRT, readSampleSize, readDataBufElementCount, this->rBufFromRTData);
     this->frameSizeBytes = readSampleSize;
+
+    /* timing data */
+    long maxTimingDataEntries = 50;//bufferElements / opusMaxFrameSize;
+    long timingDataBufferSize = maxTimingDataEntries * sizeof(pAudioInputTiming);
+    this->rBufAudioTimingData = ALLIGNEDMALLOC(timingDataBufferSize);
+    PaUtil_InitializeRingBuffer(&this->rBufAudioTiming, sizeof(pAudioInputTiming), maxTimingDataEntries, this->rBufAudioTimingData);
+    printf("timingDataBufferSize %ld, maxTimingDataEntries %ld\n", timingDataBufferSize, maxTimingDataEntries);
 
     if (this->sampleRate == 48000)
     {
@@ -81,6 +89,19 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
 {
     (void)outputBuffer; /* Prevent "unused variable" warnings. */
 
+    sequence_number++; // increase current sequence_number of this callback being called;
+
+    // prepare timingdata;
+    pAudioInputTiming timing;
+    timing.sequence_number = sequence_number;
+    timing.timeStamp = timeInfo->inputBufferAdcTime;
+    timing.currentTime = timeInfo->currentTime;
+
+    if (sequence_number % 250 == 0)
+    {
+        printf("paInputCallbackseq: %ld, currentTime:%5f, timeStamp: %5f\n", timing.sequence_number, timing.currentTime, timing.timeStamp);
+    }
+
     unsigned long availableWriteFramesInRingBuffer = (unsigned long)PaUtil_GetRingBufferWriteAvailable(&this->rBufFromRT);
     ring_buffer_size_t written = 0;
 
@@ -91,10 +112,19 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
         // check if fully written?
 
         framesWrittenSinceLastCallback += written;
+
         // check if a full opus frame is available and notify if that is the case
         // while loop here in case framesPerBuffer > opusMaxFrameSize, which means we should trigger multiple times
+        // TODO: trigger multiple times should recalculate the timingData
+        //       this needs to be fixed by actually running the user callback / encoding on a seperate thread
         while (framesWrittenSinceLastCallback >= opusMaxFrameSize)
         {
+            // trigger audio timing data together with userCallback for each opusMaxFrameSize available
+            //if ((unsigned long)PaUtil_GetRingBufferWriteAvailable(&this->rBufAudioTiming) >= 1)
+            {
+                PaUtil_WriteRingBuffer(&this->rBufAudioTiming, &timing, 1);
+            }
+
             if (userCallbackOpusFrameAvailable)
             {
                 // notify user that one opus frame is available
@@ -147,6 +177,16 @@ PaError paEncodeInStream::ProtoOpenInputStream(PaDeviceIndex device)
 int paEncodeInStream::GetRingBufferReadAvailable()
 {
     return PaUtil_GetRingBufferReadAvailable(&this->rBufFromRT);
+}
+
+int paEncodeInStream::GetTimingDataReadAvailable()
+{
+    return PaUtil_GetRingBufferReadAvailable(&this->rBufAudioTiming);
+}
+
+int paEncodeInStream::GetTimingDataWriteAvailable()
+{
+    return PaUtil_GetRingBufferWriteAvailable(&this->rBufAudioTiming);
 }
 
 int paEncodeInStream::opusEncodeFloat(
@@ -216,7 +256,7 @@ int paEncodeInStream::InitForDevice(PaDeviceIndex device)
     return pErr;
 }
 
-int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
+int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len, pAudioInputTiming *timing)
 {
     // check minimum available space needed?
 
@@ -226,16 +266,19 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     // TODO: design API
 
     ring_buffer_size_t availableInInputBuffer = this->GetRingBufferReadAvailable();
-    if (availableInInputBuffer < opusMaxFrameSize)
+    if ((availableInInputBuffer < opusMaxFrameSize) ||
+        ((unsigned long)this->GetTimingDataReadAvailable() == 0))
     {
-        // don' try to read/encode if no full opus frame is available;
+        // don' try to read/encode if no full opus frame and timing data is available;
         return 0;
     }
+
+    // put timing data from ringbuffer into provided timing pointer
+    PaUtil_ReadRingBuffer(&this->rBufAudioTiming, timing, 1);
 
     // can only run opus encoding/decoding on 48000 samplerate
     if (sampleRate == 48000)
     {
-
         framesRead = this->ReadRingBuffer(&this->rBufFromRT, this->opusEncodeBuffer, opusMaxFrameSize);
 
         // use float32 or int16 opus encoder/decoder

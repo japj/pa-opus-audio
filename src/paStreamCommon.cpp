@@ -89,7 +89,8 @@ public:
     {
         cbCount++;
         ring_buffer_size_t framesWritten = 0;
-        int encodedPacketSize = in->EncodeRecordingIntoData(transferBuffer, bufferSize);
+        pAudioInputTiming timing;
+        int encodedPacketSize = in->EncodeRecordingIntoData(transferBuffer, bufferSize, &timing);
 
         if (encodedPacketSize > 0)
         {
@@ -111,6 +112,7 @@ public:
             // error
             printf("HandleOneOpusFrameAvailable cbCount: %5d, cbErrors: %5d, framesWritten:%5d, encodedSize:%5d \n",
                    cbCount, cbCountErrors, totalFramesWritten, totalEncodedPacketSize);
+            printf("seq: %ld, currentTime:%5f, timeStamp: %5f\n", timing.sequence_number, timing.currentTime, timing.timeStamp);
         }
     }
 
@@ -156,12 +158,14 @@ int protoring()
     {
         ring_buffer_size_t availableInInputBuffer = inStream->GetRingBufferReadAvailable();
         ring_buffer_size_t availableToOutputBuffer = outStream->GetRingBufferWriteAvailable();
+        ring_buffer_size_t availableTimingData = inStream->GetTimingDataReadAvailable();
+        ring_buffer_size_t availableTimingWrite = inStream->GetTimingDataWriteAvailable();
 
         inputStreamActive = inStream->IsStreamActive();
         outputStreamActive = outStream->IsStreamActive();
 
-        printf("inputStreamActive: %5d, availableInInputBuffer: %5d ", inputStreamActive, availableInInputBuffer);
-        printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, availableToOutputBuffer);
+        printf("inputActive: %5d, availableIn: %5d, availableTiming: %5d timingWrite: %5d ", inputStreamActive, availableInInputBuffer, availableTimingData, availableTimingWrite);
+        printf("outputActive: %5d, availableOutput: %5d", outputStreamActive, availableToOutputBuffer);
         printf("\n");
 
         sleep(1);

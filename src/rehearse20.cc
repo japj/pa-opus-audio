@@ -143,8 +143,9 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
 Napi::Value Rehearse20::EncodeRecordingIntoData(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
+    pAudioInputTiming timing;
 
-    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize);
+    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize, &timing);
     if (encodedPacketSize > 0)
     {
         // TODO: busy looping, needs API design based on notification/callbacks
@@ -169,7 +170,9 @@ void Rehearse20::JsThreadHandleEncodeInStreamCallback(Napi::Env env, Napi::Funct
 
 void Rehearse20::handleEncodeInStreamCallback(Napi::Env env, Napi::Function jsCallback)
 {
-    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize);
+    pAudioInputTiming timing;
+    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize, &timing);
+    printf("timing %5ld, timeStamp %5f, currentTime %5f\n", timing.sequence_number, timing.timeStamp, timing.currentTime);
     if (encodedPacketSize > 0)
     {
         Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, this->encodeBuffer, encodedPacketSize);
