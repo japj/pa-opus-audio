@@ -1,4 +1,4 @@
-# @japj/pa-opus-audio ![Build](https://github.com/japj/pa-opus-audio/workflows/Build/badge.svg?branch=master)
+# @japj/pa-opus-audio [![Build](https://github.com/japj/pa-opus-audio/workflows/Build/badge.svg?branch=master)](https://github.com/japj/pa-opus-audio/actions?query=workflow%3ABuild)
 >pa-opus-audio is a Node.js native addon for low latency PortAudio/Opus Audio Recording and Playback.
 
 NOTE: Work in progress
