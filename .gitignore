@@ -107,3 +107,5 @@ lib/*.d.ts
 lib/binding.js
 test/*.d.ts
 test/*.js
+# Visual Studio
+.vs/
