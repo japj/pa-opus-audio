@@ -24,10 +24,12 @@
     },
     "dependencies": {
         "cmake-js": "japj/cmake-js#fix-mac-build",
-        "node-addon-api": "3.0.0"
+        "node-addon-api": "3.0.0",
+        "prebuild-install": "^5.3.3"
     },
     "devDependencies": {
         "@types/node": "^7.0.22",
+        "prebuild": "^10.0.0",
         "typescript": "^2.3.3"
     },
     "scripts": {
@@ -35,12 +37,13 @@
         "test": "node ./test/test_binding.js",
         "preprotoring": "npm run build && tsc",
         "protoring": "node ./test/test_protoring.js",
-        "install": "cmake-js compile && tsc",
-        "postbuild": "tsc",
-        "build": "node-gyp build",
+        "install": "prebuild-install -t 4 -r napi --verbose || npm run prebuild",
+        "postinstall": "tsc",
+        "prebuild": "prebuild -t 4 -r napi --backend cmake-js",
+        "rebuild": "cmake-js rebuild --CDnapi_build_version=4",
+        "build": "cmake-js build --CDnapi_build_version=4",
         "preoutput": "npm run build && tsc",
         "output": "node ./test/test_output.js"
     },
-    "main": "lib/binding.js",
-    "gypfile": true
+    "main": "lib/binding.js"
 }

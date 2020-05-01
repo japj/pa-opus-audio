@@ -109,3 +109,5 @@ test/*.d.ts
 test/*.js
 # Visual Studio
 .vs/
+# prebuild binaries
+prebuilds/
