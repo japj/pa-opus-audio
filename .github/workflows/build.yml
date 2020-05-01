@@ -31,7 +31,7 @@ jobs:
             triplet: x64-linux
           - os: macos-latest
             triplet: x64-osx 
-#TODO      fail-fast: true # don't stop building other platforms while working on the build
+      fail-fast: false # TODO: true, for now don't stop building other platforms while working on the build
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
