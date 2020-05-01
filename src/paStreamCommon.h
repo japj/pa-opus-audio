@@ -7,10 +7,20 @@
 #define ALLIGNEDFREE(x) _aligned_free
 #include <chrono>
 #include <thread>
+//TODO: replace usleep with this everywhere
 #define usleep(x) std::this_thread::sleep_for(std::chrono::microseconds(x))
-#else
+#endif
+
+#ifdef __APPLE__
 #include <unistd.h>
 #define ALLIGNEDMALLOC(x) valloc(x)
+#define ALLIGNEDFREE(x) free(x)
+#endif
+
+#ifdef __linux__
+// TODO check cross platform alternative
+// TODO: currently linux ALLIGNEDMALLOC is actually not aligned
+#define ALLIGNEDMALLOC(x) malloc(x)
 #define ALLIGNEDFREE(x) free(x)
 #endif
 
