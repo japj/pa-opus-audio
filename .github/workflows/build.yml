@@ -44,17 +44,17 @@ jobs:
     - name: Set vcpkg's response file path used as part of cache's key.
       uses: lukka/set-shell-env@master
       with:
-        vcpkgResponseFile: ${{ github.workspace }}/vcpkg_${{ matrix.triplet }}.txt
+        VCPKGRESPONSEFILE: ${{ github.workspace }}/vcpkg_${{ matrix.triplet }}.txt
 
     # Restore from cache the previously built ports. If "cache miss", then provision vcpkg, install desired ports, finally cache everything for the next run.
     - name: Restore from cache and run vcpkg
       uses: lukka/run-vcpkg@v2
       with:
         # Response file stored in source control, it provides the list of ports and triplet(s).
-        vcpkgArguments: '@${{ env.vcpkgResponseFile }}'
+        vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
         # Location of the vcpkg as submodule of the repository.
         # TODO: setup vcpkg submodule vcpkgDirectory: '${{ github.workspace }}/vcpkg'
         vcpkgGitCommitId: master 
         # Since the cache must be invalidated when content of the response file changes, let's
         # compute its hash and append this to the computed cache's key.
-        appendedCacheKey: ${{ hashFiles(env.vcpkgResponseFile) }}
+        appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
