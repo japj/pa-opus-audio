@@ -1,4 +1,8 @@
-const Rehearse20 = require("../dist/binding.js");
+/**
+ * This is the "smoketest" of the binary api, it is intended to run on the buildserver to verify 
+ * correct loading of all the binaries.
+ */
+const Rehearse20 = require("../lib/binding.js");
 const assert = require("assert");
 
 assert(Rehearse20, "The expected module is undefined");

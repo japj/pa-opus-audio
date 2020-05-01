@@ -1,4 +1,4 @@
-const addon = require('../build/Release/rehearse20-native');
+const addon = require('../build/Release/pa-opus-audio');
 
 
 interface IRehearse20Native {
