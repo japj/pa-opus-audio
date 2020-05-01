@@ -1,0 +1,4 @@
+opus
+portaudio
+--triplet
+x64-windows
