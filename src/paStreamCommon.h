@@ -20,6 +20,7 @@
 #ifdef __linux__
 // TODO check cross platform alternative
 // TODO: currently linux ALLIGNEDMALLOC is actually not aligned
+#include <stdlib.h>
 #define ALLIGNEDMALLOC(x) malloc(x)
 #define ALLIGNEDFREE(x) free(x)
 #endif
