@@ -7,6 +7,9 @@
 #include <memory.h>
 #include <stdlib.h>
 
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
+
 #include "paDecodeOutStream.h"
 #include "paEncodeInStream.h"
 
@@ -164,7 +167,7 @@ int protoring()
         printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, availableToOutputBuffer);
         printf("\n");
 
-        sleep(1);
+        std::this_thread::sleep_for (std::chrono::seconds(1));
     }
 
     printf("Pa_StopStream Output\n");
