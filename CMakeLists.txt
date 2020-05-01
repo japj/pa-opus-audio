@@ -1,7 +1,11 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.17)
 
 # Integrate with vcpkg installed ports
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+
+# workaround for cmake-js not setting MSVC multi-threaded statically-linked runtime library.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 project (pa-opus-audio)
 
