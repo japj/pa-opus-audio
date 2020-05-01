@@ -1,6 +1,5 @@
 #pragma once
-// Napi::ThreadSafeFunction was introduced in NAPI 4
-#define NAPI_VERSION 4
+
 
 #include <napi.h>
 #include "paDecodeOutStream.h"

@@ -23,8 +23,8 @@
         ]
     },
     "dependencies": {
-        "node-addon-api": "2.0.0",
-        "node-gyp": "6.1.0"
+        "cmake-js": "^6.1.0",
+        "node-addon-api": "2.0.0"
     },
     "devDependencies": {
         "@types/node": "^7.0.22",
@@ -35,7 +35,7 @@
         "test": "node ./test/test_binding.js",
         "preprotoring": "npm run build && tsc",
         "protoring": "node ./test/test_protoring.js",
-        "install": "node-gyp rebuild && tsc",
+        "install": "cmake-js compile && tsc",
         "postbuild": "tsc",
         "build": "node-gyp build",
         "preoutput": "npm run build && tsc",
