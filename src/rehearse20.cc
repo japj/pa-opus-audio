@@ -112,7 +112,7 @@ Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo &info)
 
     Buffer<uint8_t> buffer = info[0].As<Buffer<uint8_t>>();
 
-    int result = output.DecodeDataIntoPlayback(buffer.Data(), buffer.Length());
+    int result = output.DecodeDataIntoPlayback(buffer.Data(), (int)buffer.Length());
 
     return Napi::Number::New(env, result);
 }
