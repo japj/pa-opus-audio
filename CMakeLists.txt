@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.17)
 
 # Integrate with vcpkg installed ports
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+
+# on windows we need to use static (crt) linking
+if (WIN32)
 set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+endif()
 
 # workaround for cmake-js not setting MSVC multi-threaded statically-linked runtime library.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
