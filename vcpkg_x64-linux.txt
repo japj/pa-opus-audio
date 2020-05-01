@@ -1,4 +1,4 @@
 opus
 portaudio
 --triplet
-x64-linux
+x64-linux-static
