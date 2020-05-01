@@ -24,7 +24,7 @@
     },
     "dependencies": {
         "cmake-js": "japj/cmake-js#fix-mac-build",
-        "node-addon-api": "2.0.0"
+        "node-addon-api": "3.0.0"
     },
     "devDependencies": {
         "@types/node": "^7.0.22",
