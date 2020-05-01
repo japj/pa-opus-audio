@@ -30,14 +30,14 @@ jobs:
             triplet: x64-linux
           - os: macos-latest
             triplet: x64-osx 
-      fail-fast: true
+#TODO      fail-fast: true # don't stop building other platforms while working on the build
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
-#TODO: with:
-#         submodules: true      
+      with:
+        submodules: true      
 
     - uses: lukka/get-cmake@latest
 
@@ -53,8 +53,7 @@ jobs:
         # Response file stored in source control, it provides the list of ports and triplet(s).
         vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
         # Location of the vcpkg as submodule of the repository.
-        # TODO: setup vcpkg submodule vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        vcpkgGitCommitId: master 
+        vcpkgDirectory: '${{ github.workspace }}/vcpkg'
         # Since the cache must be invalidated when content of the response file changes, let's
         # compute its hash and append this to the computed cache's key.
         appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
