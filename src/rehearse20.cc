@@ -185,6 +185,7 @@ void Rehearse20::handleEncodeInStreamCallback(Napi::Env env, Napi::Function jsCa
 // trigger the async execution of the ThreadSafeFunction
 void Rehearse20::handleEncodeInStreamCallback()
 {
+    napi_status status;
 
     if (!tsfnSet)
     {
@@ -192,10 +193,23 @@ void Rehearse20::handleEncodeInStreamCallback()
         return;
     }
 
-    napi_status status = tsfn.NonBlockingCall(this, JsThreadHandleEncodeInStreamCallback);
+    // acquire tsfn lock
+    status = tsfn.Acquire();
+    if (status != napi_ok)
+    {
+        printf("handleEncodeInStreamCallback:tsfn.Acquire napi-error %d", status); //TODO better handling
+    }
+
+    status= tsfn.NonBlockingCall(this, JsThreadHandleEncodeInStreamCallback);
     if (status != napi_ok)
     {
         printf("handleEncodeInStreamCallback: napi-error %d", status); //TODO better handling
+    }
+
+    status = tsfn.Release();
+    if (status != napi_ok)
+    {
+        printf("handleEncodeInStreamCallback:tsfn.Release napi-error %d", status); //TODO better handling
     }
 }
 
@@ -209,6 +223,10 @@ void Rehearse20::paEncodeInStreamOpusFrameAvailableCallback(void *userData)
 Napi::Value Rehearse20::SetEncodedFrameAvailableCallBack(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
+
+    if (tsfnSet) {
+        throw TypeError::New(env, "Callback already set");
+    }
 
     if (info.Length() != 1)
     {
