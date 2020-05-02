@@ -41,7 +41,7 @@
         "prebuild": "npm run vcpkgupdate",
         "build": "cmake-js build --CDnapi_build_version=4",
         "postbuild": "tsc",
-        "vcpkgupdate": "git submodule init && git submodule update && node ./runvcpkgbootstrap.js",
+        "vcpkgupdate": "git submodule init && git submodule update && node runvcpkgbootstrap.js",
         "preoutput": "npm run build && tsc",
         "output": "node ./test/test_output.js",
         "smoketest": "node ./test/test_binding.js",
