@@ -43,6 +43,8 @@ paEncodeInStream::paEncodeInStream(/* args */)
     userCallbackOpusFrameAvailable = NULL;
     framesWrittenSinceLastCallback = 0;
 
+    stream = NULL;
+    encoder = NULL;
     setupPa();
 }
 
