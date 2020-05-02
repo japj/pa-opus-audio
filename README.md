@@ -25,8 +25,11 @@ input.initStartRecord();
 
 console.log('Recording and Playback from default OS devices');
 setTimeout(function () {
+    input.stopRecord();
+    output.stopPlayback();
     console.log('... long wait for exiting this program');
-}, 3000000);
+    process.exit(0);
+}, 5000);
 ```
 
 ## Platform support

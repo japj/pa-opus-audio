@@ -21,4 +21,5 @@ setTimeout(function () {
     input.stopRecord();
     output.stopPlayback();
     console.log('... long wait for exiting this program');
+    process.exit(0);
 }, 5000);
