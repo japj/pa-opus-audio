@@ -33,4 +33,7 @@ input.initStartRecord();
 console.log('Welcome to My Console,');
 setTimeout(function () {
     console.log('Blah blah blah blah extra-blah');
+    input.stopRecord();
+    output.stopPlayback();
+    process.exit();
 }, 3000000);
