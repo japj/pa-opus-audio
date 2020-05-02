@@ -1,7 +1,7 @@
-import Rehearse20 = require('../lib/binding');
+import { PoaExperimental } from '../lib/binding';
 import Rtp = require('./rtp');
 
-const instance = new Rehearse20("mr-yeoman");
+const instance = new PoaExperimental("mr-yeoman");
 
 import udp = require('dgram');
 
@@ -14,7 +14,7 @@ server.on('error', function (error: string) {
   server.close();
 });
 
-let rtpClients = new Map<string, Rehearse20>();
+let rtpClients = new Map<string, PoaExperimental>();
 
 let contentCount = 0;
 let emptyCount = 0;
@@ -58,7 +58,7 @@ server.on('message', function (msg: Buffer, info: udp.RemoteInfo) {
   //console.log(`'${clientKey}' send msg with length ${msg.length}`);
   if (!rtpClients.has(clientKey)) {
     console.log(`NEW client detected at: ${clientKey}`);
-    let rtpClient = new Rehearse20(clientKey);
+    let rtpClient = new PoaExperimental(clientKey);
     let x = rtpClient.OutputInitAndStartStream();
     console.log(`OutputInitAndStartStream: ${x}`);
     rtpClients.set(clientKey, rtpClient);

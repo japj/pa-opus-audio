@@ -1,17 +1,18 @@
-import Rehearse20 = require('../lib/binding');
+import { PoaInput, PoaOutput } from '../lib/binding';
 
-const instance = new Rehearse20("mr-yeoman");
+const input = new PoaInput();
+const output = new PoaOutput();
 
 let contentCount = 0;
 let emptyCount = 0;
 let totalLength = 0;
 
-instance.SetEncodedFrameAvailableCallBack(function (b: Buffer) {
+input.setEncodedFrameAvailableCallback(function (b: Buffer) {
     if (b) {
         contentCount++;
         totalLength += b.byteLength;
 
-        instance.DecodeDataIntoPlayback(b);
+        output.decodeAndPlay(b);
 
         if (contentCount % 100 == 0) {
             console.log(`contentCount: ${contentCount}, totalLength: ${totalLength}`);
@@ -26,8 +27,8 @@ instance.SetEncodedFrameAvailableCallBack(function (b: Buffer) {
     }
 });
 
-instance.OutputInitAndStartStream();
-instance.InputInitAndStartStream();
+output.initStartPlayback();
+input.initStartRecord();
 
 console.log('Welcome to My Console,');
 setTimeout(function () {

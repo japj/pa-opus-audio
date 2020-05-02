@@ -1,6 +1,6 @@
-import Rehearse20 = require('../lib/binding');
+import { PoaExperimental } from '../lib/binding';
 
-const instance = new Rehearse20("mr-yeoman");
+const instance = new PoaExperimental("mr-yeoman");
 
 instance.detect();
 instance.protoring();

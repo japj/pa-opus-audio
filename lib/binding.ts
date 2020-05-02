@@ -15,40 +15,20 @@ interface IRehearse20Native {
     SetEncodedFrameAvailableCallBack(cb: Function): number;
 };
 
-class Rehearse20 {
-    constructor(name: string) {
-        this._addonInstance = new addon.Rehearse20(name)
+
+/**
+ * 
+ */
+class PoaInput {
+    constructor() {
+        this._addonInstance = new addon.Rehearse20("PoaInput")
     }
 
-    greet(strName: string) {
-        return this._addonInstance.greet(strName);
-    }
-
-    detect() {
-        return this._addonInstance.detect();
-    }
-
-    protoring() {
-        return this._addonInstance.protoring();
-    }
-
-    OutputInitAndStartStream() {
-        return this._addonInstance.OutputInitAndStartStream();
-    }
-
-    DecodeDataIntoPlayback(data: Buffer) {
-        return this._addonInstance.DecodeDataIntoPlayback(data);
-    }
-
-    InputInitAndStartStream() {
+    initStartRecord(): number {
         return this._addonInstance.InputInitAndStartStream();
     }
 
-    /*EncodeRecordingIntoData() {
-        return this._addonInstance.EncodeRecordingIntoData();
-    }*/
-
-    SetEncodedFrameAvailableCallBack(cb: Function) {
+    setEncodedFrameAvailableCallback(cb:Function): number {
         return this._addonInstance.SetEncodedFrameAvailableCallBack(cb);
     }
 
@@ -56,4 +36,98 @@ class Rehearse20 {
     private _addonInstance: IRehearse20Native;
 }
 
-export = Rehearse20;
+class PoaOutput {
+    constructor() {
+        this._addonInstance = new addon.Rehearse20("PoaOutput")
+    }
+
+    initStartPlayback(): number {
+        return this._addonInstance.OutputInitAndStartStream();
+    }
+
+    decodeAndPlay(data:Buffer): number {
+        return this._addonInstance.DecodeDataIntoPlayback(data);
+    }
+
+    // private members
+    private _addonInstance: IRehearse20Native;
+}
+
+/**
+ * This is the experimental part of the api
+ */
+class PoaExperimental {
+    /**
+     * 
+     * @param name name of the user
+     */
+    constructor(name: string) {
+        this._addonInstance = new addon.Rehearse20(name)
+    }
+
+    /**
+     * prints some info for `strName`
+     * @param strName 
+     */
+    greet(strName: string): string {
+        return this._addonInstance.greet(strName);
+    }
+
+    /**
+     * 
+     */
+    detect(): number {
+        return this._addonInstance.detect();
+    }
+
+    /**
+     * 
+     */
+    protoring():number {
+        return this._addonInstance.protoring();
+    }
+
+    /**
+     * 
+     */
+    OutputInitAndStartStream():number {
+        return this._addonInstance.OutputInitAndStartStream();
+    }
+
+    /**
+     * Playback audio by decoding previously encoded data
+     * @param data Buffer to be decoded into playback
+     */
+    DecodeDataIntoPlayback(data: Buffer):number {
+        return this._addonInstance.DecodeDataIntoPlayback(data);
+    }
+
+    /**
+     * Start the input stream
+     */
+    InputInitAndStartStream():number {
+        return this._addonInstance.InputInitAndStartStream();
+    }
+
+    /*EncodeRecordingIntoData() {
+        return this._addonInstance.EncodeRecordingIntoData();
+    }*/
+
+    /**
+     * Setup callback for receiving encoded data that was recorded
+     * @param cb callback for receiving encoded data
+     */
+    SetEncodedFrameAvailableCallBack(cb: Function):number {
+        return this._addonInstance.SetEncodedFrameAvailableCallBack(cb);
+    }
+
+    // private members
+    private _addonInstance: IRehearse20Native;
+}
+
+//export = Rehearse20;
+export { 
+    PoaInput,
+    PoaOutput,
+    PoaExperimental
+};
