@@ -1,0 +1,69 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Prebuild
+
+# Controls when the action will run. Triggers the workflow on releases
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Prebuild
+    runs-on: ${{ matrix.os }}
+      strategy:
+        matrix:
+          os: [macos-latest, ubuntu-latest, windows-latest]
+          node: [12] # TODO: while build is not working, only use one node , 14]
+          include:
+            - os: windows-latest
+              triplet: x64-windows
+            - os: ubuntu-latest
+              triplet: x64-linux
+            - os: macos-latest
+              triplet: x64-osx 
+        fail-fast: false # TODO: true, for now don't stop building other platforms while working on the build
+
+  steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+      with:
+        submodules: true       
+        
+    - uses: lukka/get-cmake@latest
+
+    - name: Set vcpkg's response file path used as part of cache's key.
+      uses: lukka/set-shell-env@master
+      with:
+        VCPKGRESPONSEFILE: ${{ github.workspace }}/vcpkg_${{ matrix.triplet }}.txt
+        
+    # Restore from cache the previously built ports. If "cache miss", then provision vcpkg, install desired ports, finally cache everything for the next run.
+    - name: Restore from cache and run vcpkg
+      uses: lukka/run-vcpkg@v2
+      with:
+        # Response file stored in source control, it provides the list of ports and triplet(s).
+        vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
+        # Location of the vcpkg as submodule of the repository.
+        vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        # Since the cache must be invalidated when content of the response file changes, let's
+        # compute its hash and append this to the computed cache's key.
+        appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
+        
+    # prepare node installation
+    - name: Install Node v${{ matrix.node }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node }}
+
+    - name: Install dependencies
+      run: npm install --build-from-source
+
+    - name: Package prebuild
+      run: npm run do-prebuild
+
+    - name: Upload prebuild asset
+      uses: icrawl/action-artifact@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        path: "prebuilds/*.tar.gz"
