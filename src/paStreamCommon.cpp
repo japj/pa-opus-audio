@@ -163,8 +163,8 @@ int protoring()
         inputStreamActive = inStream->IsStreamActive();
         outputStreamActive = outStream->IsStreamActive();
 
-        printf("inputStreamActive: %5d, availableInInputBuffer: %5d ", inputStreamActive, availableInInputBuffer);
-        printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, availableToOutputBuffer);
+        printf("inputStreamActive: %5d, availableInInputBuffer: %5d ", inputStreamActive, (int)availableInInputBuffer);
+        printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, (int)availableToOutputBuffer);
         printf("\n");
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
