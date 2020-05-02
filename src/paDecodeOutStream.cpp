@@ -38,6 +38,11 @@ paDecodeOutStream::paDecodeOutStream(/* args */)
 paDecodeOutStream::~paDecodeOutStream()
 {
     // TODO: cleanup all memory
+    printf("paDecodeOutStream::~paDecodeOutStream called\n");
+    if (Pa_IsStreamActive(this->stream) == 1) {
+        Pa_StopStream(this->stream);
+        Pa_CloseStream(this->stream);
+    }
 }
 
 int paDecodeOutStream::InitPaOutputData()
