@@ -11,8 +11,11 @@ var options = {
     shell: true
 };
 
+const vcpkgBinary = (process.platform === 'win32') ?
+                    "vcpkg\\vcpkg.exe" : "vcpkg/vcpkg";
+
 function spawnBootstrap() {
-    if (existsSync("vcpkg/vcpkg") || existsSync("vcpkg\\vcpkg.exe")) {
+    if (existsSync(vcpkgBinary)) {
         spawnPortInstall();
         return;
     }
@@ -42,7 +45,7 @@ function spawnPortInstall() {
             "@vcpkg_x64-osx.txt" :
             "@vcpkg_x64-linux.txt"
 
-    var portInstallProces = spawn("vcpkg/vcpkg", ["install", portInstallResponsefile], options)
+    var portInstallProces = spawn(vcpkgBinary, ["install", portInstallResponsefile], options)
 
     portInstallProces.on('close', function (code) {
         process.stdout.write('"bootstrap" finished with code ' + code + '\n');
