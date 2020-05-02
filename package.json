@@ -42,9 +42,11 @@
         "prebuild": "prebuild -t 4 -r napi --backend cmake-js",
         "rebuild": "cmake-js rebuild --CDnapi_build_version=4",
         "build": "cmake-js build --CDnapi_build_version=4",
+        "postbuild": "tsc",
         "preoutput": "npm run build && tsc",
         "output": "node ./test/test_output.js",
         "smoketest": "node ./test/test_binding.js"
     },
-    "main": "lib/binding.js"
+    "main": "./lib/binding.js",
+    "types": "./lib/binding.d.ts"
 }
