@@ -1,5 +1,7 @@
 const addon = require('../build/Release/pa-opus-audio');
 
+//use this for debug builds with meaningfull stack trace symbols 
+//const addon = require('../build/Debug/pa-opus-audio');
 
 interface IRehearse20Native {
     greet(strName: string): string;
@@ -8,9 +10,10 @@ interface IRehearse20Native {
 
     OutputInitAndStartStream(): number;
     DecodeDataIntoPlayback(data: Buffer): number;
+    OutputStopStream(): number;
 
     InputInitAndStartStream(): number;
-    //EncodeRecordingIntoData(): Buffer; // fully remove now that we have a callback interface
+    InputStopStream(): number;
 
     SetEncodedFrameAvailableCallBack(cb: Function): number;
 };
@@ -28,6 +31,10 @@ class PoaInput {
         return this._addonInstance.InputInitAndStartStream();
     }
 
+    stopRecord():number {
+        return this._addonInstance.InputStopStream();
+    }
+
     setEncodedFrameAvailableCallback(cb:Function): number {
         return this._addonInstance.SetEncodedFrameAvailableCallBack(cb);
     }
@@ -43,6 +50,10 @@ class PoaOutput {
 
     initStartPlayback(): number {
         return this._addonInstance.OutputInitAndStartStream();
+    }
+
+    stopPlayback(): number {
+        return this._addonInstance.OutputStopStream();
     }
 
     decodeAndPlay(data:Buffer): number {

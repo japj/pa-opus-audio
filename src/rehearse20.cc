@@ -249,6 +249,24 @@ Napi::Value Rehearse20::SetEncodedFrameAvailableCallBack(const Napi::CallbackInf
     return Napi::Number::New(env, 0);
 }
 
+Napi::Value Rehearse20::OutputStopStream(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    PaError err = output.StopStream();
+    
+    return Napi::Number::New(env, err);
+}
+
+Napi::Value Rehearse20::InputStopStream(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+    
+    PaError err = input.StopStream();
+
+    return Napi::Number::New(env, err);
+}
+
 Napi::Function Rehearse20::GetClass(Napi::Env env)
 {
     return DefineClass(env, "Rehearse20", {
@@ -258,7 +276,8 @@ Napi::Function Rehearse20::GetClass(Napi::Env env)
                                               Rehearse20::InstanceMethod("OutputInitAndStartStream", &Rehearse20::OutputInitAndStartStream),
                                               Rehearse20::InstanceMethod("DecodeDataIntoPlayback", &Rehearse20::DecodeDataIntoPlayback),
                                               Rehearse20::InstanceMethod("InputInitAndStartStream", &Rehearse20::InputInitAndStartStream),
-                                              //Rehearse20::InstanceMethod("EncodeRecordingIntoData", &Rehearse20::EncodeRecordingIntoData),
+                                              Rehearse20::InstanceMethod("OutputStopStream", &Rehearse20::OutputStopStream),
+                                              Rehearse20::InstanceMethod("InputStopStream", &Rehearse20::InputStopStream),
                                               Rehearse20::InstanceMethod("SetEncodedFrameAvailableCallBack", &Rehearse20::SetEncodedFrameAvailableCallBack),
                                           });
 }

@@ -20,9 +20,11 @@ public:
 
     Napi::Value OutputInitAndStartStream(const Napi::CallbackInfo &info);
     Napi::Value DecodeDataIntoPlayback(const Napi::CallbackInfo &info);
+    Napi::Value OutputStopStream(const Napi::CallbackInfo &info);
 
     Napi::Value InputInitAndStartStream(const Napi::CallbackInfo &info);
     Napi::Value EncodeRecordingIntoData(const Napi::CallbackInfo &info);
+    Napi::Value InputStopStream(const Napi::CallbackInfo &info);
 
     Napi::Value SetEncodedFrameAvailableCallBack(const Napi::CallbackInfo &info);
 
