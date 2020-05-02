@@ -9,7 +9,7 @@ This is part of the "rehearse20" project and uses concepts and code from my [trx
 ## Example
 
 ```ts
-import { PoaInput, PoaOutput } from '../lib/binding'; // 
+import { PoaInput, PoaOutput } from 'pa-opus-audio';
 
 const input = new PoaInput();
 const output = new PoaOutput();
