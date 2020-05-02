@@ -47,4 +47,14 @@ void log_pa_stream_info(PaStream *stream, PaStreamParameters *params);
 /* our custom way of default device selection */
 #define paDefaultDevice ((PaDeviceIndex)-2)
 
+int calcSizeUpPow2(unsigned int len);
+/*v--;
+v |= v >> 1;
+v |= v >> 2;
+v |= v >> 4;
+v |= v >> 8;
+v |= v >> 16;
+v++;
+*/
+
 #endif

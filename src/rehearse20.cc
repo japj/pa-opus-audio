@@ -126,7 +126,7 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
     {
         result = input.InitForDevice();
 
-        encodeBufferSize = input.GetMaxEncodingBufferSize();
+        encodeBufferSize = input.GetUncompressedBufferSizeBytes();
         encodeBuffer = (uint8_t *)ALLIGNEDMALLOC(encodeBufferSize);
 
         input.setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback, this);

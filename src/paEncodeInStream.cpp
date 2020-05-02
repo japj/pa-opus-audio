@@ -22,12 +22,11 @@ static int paStaticInputCallback(const void *inputBuffer,
 
 paEncodeInStream::paEncodeInStream(/* args */)
 {
-    sampleRate = 48000;             // opus only allows certain sample rates for encoding
-    sampleFormat = paInt16;         //paFloat32 or paInt16;
-    channels = 1;                   //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
-                                    // 2 gives garbled sound?
-    bufferElements = 4096;          // TODO: calculate optimal ringbuffer size
-                                    // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
+    sampleRate = 48000;     // opus only allows certain sample rates for encoding
+    sampleFormat = paInt16; //paFloat32 or paInt16;
+    channels = 1;           //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
+                            // 2 gives garbled sound?
+
     paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                                 // frames per buffer for OS Audio buffer*/
     opusMaxFrameSize = 120;         // 2.5ms@48kHz number of samples per channel in the input signal
@@ -35,6 +34,11 @@ paEncodeInStream::paEncodeInStream(/* args */)
     //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
     // for better analysis of the audio I am sending with 60ms from opusrtp
 
+    // TODO: latency is more important than correctness of audio stream
+    // if for whatever reason the ringBuffer gets full, we do not want to fill it with audio that will lag behind
+    // thus we limit the maxRingBufferSamples to 10ms for now (4 * opus frame)
+    maxRingBufferSamples = calcSizeUpPow2(opusMaxFrameSize * 4); // TODO: calculate optimal ringbuffer size
+                                                                 // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
     userDataCallbackOpusFrameAvailable = NULL;
     userCallbackOpusFrameAvailable = NULL;
     framesWrittenSinceLastCallback = 0;
@@ -49,12 +53,11 @@ int paEncodeInStream::InitPaInputData()
 {
     int err;
 
-    long readDataBufElementCount = this->bufferElements;
-    long readSampleSize = Pa_GetSampleSize(this->sampleFormat);
-    long bufferSize = readSampleSize * readDataBufElementCount;
+    this->sampleSizeSizeBytes = Pa_GetSampleSize(this->sampleFormat);
+    long bufferSize = sampleSizeSizeBytes * this->maxRingBufferSamples;
     this->rBufFromRTData = ALLIGNEDMALLOC(bufferSize);
-    PaUtil_InitializeRingBuffer(&this->rBufFromRT, readSampleSize, readDataBufElementCount, this->rBufFromRTData);
-    this->frameSizeBytes = readSampleSize;
+    err = PaUtil_InitializeRingBuffer(&this->rBufFromRT, sampleSizeSizeBytes, this->maxRingBufferSamples, this->rBufFromRTData);
+    PaCHK("paEncodeInStream:PaUtil_InitializeRingBuffer", err);
 
     if (this->sampleRate == 48000)
     {
@@ -262,7 +265,7 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     {
         // only support encoding/decoding with opus
         // so for now only treat this as "pass-through" audio
-        encodedPacketSize = opusMaxFrameSize * this->frameSizeBytes;
+        encodedPacketSize = opusMaxFrameSize * this->sampleSizeSizeBytes;
         if (encodedPacketSize <= len)
         {
             framesRead = this->ReadRingBuffer(&this->rBufFromRT, data, opusMaxFrameSize);
@@ -279,9 +282,9 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     return encodedPacketSize;
 }
 
-int paEncodeInStream::GetMaxEncodingBufferSize()
+int paEncodeInStream::GetUncompressedBufferSizeBytes()
 {
-    return this->frameSizeBytes * this->opusMaxFrameSize;
+    return this->sampleSizeSizeBytes * this->opusMaxFrameSize;
 }
 
 void paEncodeInStream::setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback cb, void *userData)

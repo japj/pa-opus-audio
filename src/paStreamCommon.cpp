@@ -7,8 +7,8 @@
 #include <memory.h>
 #include <stdlib.h>
 
-#include <thread>         // std::this_thread::sleep_for
-#include <chrono>         // std::chrono::seconds
+#include <thread> // std::this_thread::sleep_for
+#include <chrono> // std::chrono::seconds
 
 #include "paDecodeOutStream.h"
 #include "paEncodeInStream.h"
@@ -77,7 +77,7 @@ public:
     {
         in = input;
         out = output;
-        bufferSize = in->GetMaxEncodingBufferSize();
+        bufferSize = in->GetUncompressedBufferSizeBytes();
         transferBuffer = ALLIGNEDMALLOC(bufferSize);
         cbCount = 0;
         cbCountErrors = 0;
@@ -167,7 +167,7 @@ int protoring()
         printf("outputStreamActive: %5d, availableInOutputBuffer: %5d", outputStreamActive, availableToOutputBuffer);
         printf("\n");
 
-        std::this_thread::sleep_for (std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     printf("Pa_StopStream Output\n");
@@ -197,4 +197,16 @@ int protoring()
     PaCHK("Pa_Terminate", err);
 
     return 0;
+}
+
+int calcSizeUpPow2(unsigned int v)
+{ // http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
 }

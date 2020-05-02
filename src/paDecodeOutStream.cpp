@@ -48,7 +48,9 @@ int paDecodeOutStream::InitPaOutputData()
     long writeSampleSize = Pa_GetSampleSize(this->sampleFormat);
     long bufferSize = writeSampleSize * writeDataBufElementCount;
     this->rBufToRTData = ALLIGNEDMALLOC(bufferSize);
-    PaUtil_InitializeRingBuffer(&this->rBufToRT, writeSampleSize, writeDataBufElementCount, this->rBufToRTData);
+    err = PaUtil_InitializeRingBuffer(&this->rBufToRT, writeSampleSize, writeDataBufElementCount, this->rBufToRTData);
+    PaCHK("paDecodeOutStream:PaUtil_InitializeRingBuffer", err);
+
     this->frameSizeBytes = writeSampleSize;
 
     if (this->sampleRate == 48000)
