@@ -40,6 +40,7 @@
 	}
 
 int setupPa();
+int terminatePa();
 int protoring();
 void paerror(const char *msg, int r);
 void log_pa_stream_info(PaStream *stream, PaStreamParameters *params);

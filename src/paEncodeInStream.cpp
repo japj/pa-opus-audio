@@ -42,16 +42,24 @@ paEncodeInStream::paEncodeInStream(/* args */)
     userDataCallbackOpusFrameAvailable = NULL;
     userCallbackOpusFrameAvailable = NULL;
     framesWrittenSinceLastCallback = 0;
+
+    setupPa();
 }
 
 paEncodeInStream::~paEncodeInStream()
 {
     // TODO: cleanup all memory
     printf("paEncodeInStream::~paEncodeInStream called\n");
-    if (Pa_IsStreamActive(this->stream) == 1) {
-        Pa_StopStream(this->stream);
-        Pa_CloseStream(this->stream);
+    if (this->stream)
+    {
+        if (Pa_IsStreamActive(this->stream) == 1)
+        {
+            this->StopStream();
+        }
+        this->CloseStream();
     }
+
+    terminatePa();
 }
 
 int paEncodeInStream::InitPaInputData()
@@ -205,6 +213,17 @@ PaError paEncodeInStream::IsStreamActive()
 PaError paEncodeInStream::StopStream()
 {
     return Pa_StopStream(this->stream);
+}
+
+PaError paEncodeInStream::CloseStream()
+{
+    PaError err = paNoError;
+    if (this->stream)
+    {
+        err = Pa_CloseStream(this->stream);
+        this->stream = NULL;
+    }
+    return err;
 }
 
 int paEncodeInStream::InitForDevice(PaDeviceIndex device)

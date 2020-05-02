@@ -33,16 +33,22 @@ paDecodeOutStream::paDecodeOutStream(/* args */)
 
     //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
     // for better analysis of the audio I am sending with 60ms from opusrtp
+    setupPa();
 }
 
 paDecodeOutStream::~paDecodeOutStream()
 {
     // TODO: cleanup all memory
     printf("paDecodeOutStream::~paDecodeOutStream called\n");
-    if (Pa_IsStreamActive(this->stream) == 1) {
-        Pa_StopStream(this->stream);
-        Pa_CloseStream(this->stream);
+    if (this->stream)
+    {
+        if (Pa_IsStreamActive(this->stream) == 1)
+        {
+            this->StopStream();
+        }
+        this->CloseStream();
     }
+    terminatePa();
 }
 
 int paDecodeOutStream::InitPaOutputData()
@@ -186,6 +192,17 @@ PaError paDecodeOutStream::IsStreamActive()
 PaError paDecodeOutStream::StopStream()
 {
     return Pa_StopStream(this->stream);
+}
+
+PaError paDecodeOutStream::CloseStream()
+{
+    PaError err = paNoError;
+    if (this->stream)
+    {
+        err = Pa_CloseStream(this->stream);
+        this->stream = NULL;
+    }
+    return err;
 }
 
 int paDecodeOutStream::InitForDevice(PaDeviceIndex device)

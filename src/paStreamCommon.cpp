@@ -43,12 +43,8 @@ void log_pa_stream_info(PaStream *stream, PaStreamParameters *params)
 
 int setupPa()
 {
-    // only perform Pa initialization once
-    static bool initDone = 0;
-    if (initDone)
-    {
-        return 0;
-    }
+    // only perform Pa initialization is allowed to be done multiple times,
+    // but terminate must be called with the same amount of times
     PaError err;
     /* PortAudio setup*/
     err = Pa_Initialize();
@@ -57,7 +53,18 @@ int setupPa()
         printf("PortAudio error: %s \n", Pa_GetErrorText(err));
         return -1;
     }
-    initDone = true;
+    return 0;
+}
+
+int terminatePa()
+{
+    PaError err;
+    err = Pa_Terminate();
+    if (err != paNoError)
+    {
+        printf("PortAudio error: %s \n", Pa_GetErrorText(err));
+        return -1;
+    }
     return 0;
 }
 

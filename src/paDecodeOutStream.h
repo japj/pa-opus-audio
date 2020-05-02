@@ -45,6 +45,7 @@ public:
     PaError StartStream();
     PaError IsStreamActive();
     PaError StopStream();
+    PaError CloseStream();
 
     //int dec: Flag (0 or 1) to request that any in-band forward error correction data be decoded. If no such data is available, the frame is decoded as if it were lost.
     int DecodeDataIntoPlayback(void *data, opus_int32 len, int dec = 0);
@@ -63,7 +64,7 @@ private:
         int frame_size,
         int decode_fec);
 
-/** Decode an Opus packet
+    /** Decode an Opus packet
   * @param [in] data <tt>char*</tt>: Input payload. Use a NULL pointer to indicate packet loss
   * @param [in] len <tt>opus_int32</tt>: Number of bytes in payload*
   * @param [out] pcm <tt>opus_int16*</tt>: Output signal (interleaved if 2 channels). length

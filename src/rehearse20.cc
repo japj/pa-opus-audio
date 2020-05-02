@@ -65,13 +65,7 @@ Napi::Value Rehearse20::Protoring(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    int result;
-
-    result = setupPa();
-    if (result == 0)
-    {
-        result = protoring();
-    }
+    int result = protoring();
 
     return Napi::Number::New(env, result);
 }
@@ -79,14 +73,10 @@ Napi::Value Rehearse20::Protoring(const Napi::CallbackInfo &info)
 Napi::Value Rehearse20::OutputInitAndStartStream(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-    int result = setupPa();
+    int result = output.InitForDevice();
     if (result == 0)
     {
-        result = output.InitForDevice();
-        if (result == 0)
-        {
-            result = output.StartStream();
-        }
+        result = output.StartStream();
     }
 
     return Napi::Number::New(env, result);
@@ -121,20 +111,16 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    int result = setupPa();
+    int result = input.InitForDevice();
+
+    encodeBufferSize = input.GetUncompressedBufferSizeBytes();
+    encodeBuffer = (uint8_t *)ALLIGNEDMALLOC(encodeBufferSize);
+
+    input.setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback, this);
+
     if (result == 0)
     {
-        result = input.InitForDevice();
-
-        encodeBufferSize = input.GetUncompressedBufferSizeBytes();
-        encodeBuffer = (uint8_t *)ALLIGNEDMALLOC(encodeBufferSize);
-
-        input.setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback, this);
-
-        if (result == 0)
-        {
-            result = input.StartStream();
-        }
+        result = input.StartStream();
     }
 
     return Napi::Number::New(env, 0);
@@ -200,7 +186,7 @@ void Rehearse20::handleEncodeInStreamCallback()
         printf("handleEncodeInStreamCallback:tsfn.Acquire napi-error %d", status); //TODO better handling
     }
 
-    status= tsfn.NonBlockingCall(this, JsThreadHandleEncodeInStreamCallback);
+    status = tsfn.NonBlockingCall(this, JsThreadHandleEncodeInStreamCallback);
     if (status != napi_ok)
     {
         printf("handleEncodeInStreamCallback: napi-error %d", status); //TODO better handling
@@ -224,7 +210,8 @@ Napi::Value Rehearse20::SetEncodedFrameAvailableCallBack(const Napi::CallbackInf
 {
     Napi::Env env = info.Env();
 
-    if (tsfnSet) {
+    if (tsfnSet)
+    {
         throw TypeError::New(env, "Callback already set");
     }
 
@@ -254,15 +241,37 @@ Napi::Value Rehearse20::OutputStopStream(const Napi::CallbackInfo &info)
     Napi::Env env = info.Env();
 
     PaError err = output.StopStream();
-    
+    if (err)
+    {
+        std::string msg = "OutputStopStream error:" + std::to_string(err);
+        throw TypeError::New(env, msg.c_str());
+    }
+    err = output.CloseStream();
+    if (err)
+    {
+        std::string msg = "OutputCloseStream error" + std::to_string(err);
+        throw TypeError::New(env, msg.c_str());
+    }
+
     return Napi::Number::New(env, err);
 }
 
 Napi::Value Rehearse20::InputStopStream(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-    
+
     PaError err = input.StopStream();
+    if (err)
+    {
+        std::string msg = "InputStopStream error: " + std::to_string(err);
+        throw TypeError::New(env, msg.c_str());
+    }
+    err = input.CloseStream();
+    if (err)
+    {
+        std::string msg = "InputCloseStream error:" + std::to_string(err);
+        throw TypeError::New(env, msg.c_str());
+    }
 
     return Napi::Number::New(env, err);
 }

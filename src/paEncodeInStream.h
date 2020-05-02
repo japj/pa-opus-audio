@@ -53,6 +53,7 @@ public:
     PaError StartStream();
     PaError IsStreamActive();
     PaError StopStream();
+    PaError CloseStream();
 
     int EncodeRecordingIntoData(void *data, opus_int32 len);
 
