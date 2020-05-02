@@ -11,20 +11,20 @@ jobs:
   build:
     name: Prebuild
     runs-on: ${{ matrix.os }}
-      strategy:
-        matrix:
-          os: [macos-latest, ubuntu-latest, windows-latest]
-          node: [12] # TODO: while build is not working, only use one node , 14]
-          include:
-            - os: windows-latest
-              triplet: x64-windows
-            - os: ubuntu-latest
-              triplet: x64-linux
-            - os: macos-latest
-              triplet: x64-osx 
-        fail-fast: false # TODO: true, for now don't stop building other platforms while working on the build
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        node: [12] # TODO: while build is not working, only use one node , 14]
+        include:
+          - os: windows-latest
+            triplet: x64-windows
+          - os: ubuntu-latest
+            triplet: x64-linux
+          - os: macos-latest
+            triplet: x64-osx 
+      fail-fast: false # TODO: true, for now don't stop building other platforms while working on the build
 
-  steps:
+    steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
       with:
