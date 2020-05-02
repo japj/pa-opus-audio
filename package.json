@@ -33,19 +33,22 @@
         "typescript": "^2.3.3"
     },
     "scripts": {
+        "install": "prebuild-install -t 4 -r napi --verbose || npm run rebuild",
+        "do-prebuild": "prebuild -t 4 -r napi --backend cmake-js",
+        "prerebuild": "npm run vcpkgupdate",
+        "rebuild": "cmake-js rebuild --CDnapi_build_version=4",
+        "postrebuild": "tsc",
+        "prebuild": "npm run vcpkgupdate",
+        "build": "cmake-js build --CDnapi_build_version=4",
+        "postbuild": "tsc",
+        "vcpkgupdate": "git submodule init && git submodule update && node ./runvcpkgbootstrap.js",
+        "preoutput": "npm run build && tsc",
+        "output": "node ./test/test_output.js",
+        "smoketest": "node ./test/test_binding.js",
         "pretest": "tsc",
         "test": "node ./test/test_binding.js",
         "preprotoring": "npm run build && tsc",
-        "protoring": "node ./test/test_protoring.js",
-        "install": "prebuild-install -t 4 -r napi --verbose || npm run prebuild",
-        "postinstall": "tsc",
-        "prebuild": "prebuild -t 4 -r napi --backend cmake-js",
-        "rebuild": "cmake-js rebuild --CDnapi_build_version=4",
-        "build": "cmake-js build --CDnapi_build_version=4",
-        "postbuild": "tsc",
-        "preoutput": "npm run build && tsc",
-        "output": "node ./test/test_output.js",
-        "smoketest": "node ./test/test_binding.js"
+        "protoring": "node ./test/test_protoring.js"
     },
     "main": "./lib/binding.js",
     "types": "./lib/binding.d.ts"
