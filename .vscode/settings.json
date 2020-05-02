@@ -2,5 +2,8 @@
     "files.associations": {
         "algorithm": "cpp",
         "ios": "cpp"
-    }
+    },
+    "C_Cpp.default.includePath": [
+        ".vscode/napi-include-vscode",
+        "node_modules/node-addon-api"]
 }
