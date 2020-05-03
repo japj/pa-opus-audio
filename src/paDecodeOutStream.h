@@ -2,6 +2,7 @@
 #define _PA_DECODE_OUT_STREAM
 
 #include "paStreamCommon.h"
+#include <mutex>
 
 class paDecodeOutStream
 {
@@ -13,6 +14,7 @@ private:
     void *rBufToRTData;
     /* END data for playback callback*/
 
+    std::mutex decodeDataIntoPlaybackMutex;
     /* BEGIN data for playback opus decoder */
     int sampleSizeSizeBytes;
     int channels;

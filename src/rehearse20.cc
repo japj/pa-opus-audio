@@ -1,4 +1,5 @@
 #include "rehearse20.h"
+#include "DecodeWorker.h"
 
 using namespace Napi;
 
@@ -102,9 +103,12 @@ Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo &info)
 
     Buffer<uint8_t> buffer = info[0].As<Buffer<uint8_t>>();
 
-    int result = output.DecodeDataIntoPlayback(buffer.Data(), (int)buffer.Length());
+    // run the actual decoding in a seperate worker
+    // TODO: how to ensure multiple DecodeWorkers don't run into each other (or order gets confused)?
+    DecodeWorker *wk = new DecodeWorker(env, buffer, &output);
+    wk->Queue();
 
-    return Napi::Number::New(env, result);
+    return Napi::Number::New(env, 0);
 }
 
 Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)

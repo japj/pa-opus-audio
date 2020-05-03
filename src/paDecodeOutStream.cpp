@@ -86,7 +86,7 @@ int paDecodeOutStream::paOutputCallback(
 
     unsigned long availableInReadBuffer = (unsigned long)PaUtil_GetRingBufferReadAvailable(&this->rBufToRT);
     ring_buffer_size_t actualFramesRead = 0;
-    
+
     // always playback available audio, even if it is not enough to fill entire framesPerBuffer requested
     unsigned long toCopyData = (framesPerBuffer > availableInReadBuffer) ? availableInReadBuffer : framesPerBuffer;
     if (toCopyData > 0)
@@ -94,7 +94,9 @@ int paDecodeOutStream::paOutputCallback(
         actualFramesRead = PaUtil_ReadRingBuffer(&this->rBufToRT, outputBuffer, framesPerBuffer);
 
         // if actualFramesRead < framesPerBuffer then we read not enough data
-    } else {
+    }
+    else
+    {
         printf("paOutputCallback: not enough data available needed(%ld), available(%ld)\n", framesPerBuffer, availableInReadBuffer);
     }
 
@@ -144,10 +146,9 @@ PaError paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
                                 outputLatency + paCallbackFramesPerBuffer : 
                                 opusMaxFrameSize + paCallbackFramesPerBuffer;
     */
-    
-    // TODO: calculate optimal ringbuffer size
-                                                                 // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
 
+    // TODO: calculate optimal ringbuffer size
+    // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
 
     this->sampleSizeSizeBytes = Pa_GetSampleSize(this->sampleFormat);
     long bufferSize = sampleSizeSizeBytes * this->maxRingBufferSamples;
@@ -249,12 +250,17 @@ int paDecodeOutStream::InitForDevice(PaDeviceIndex device)
 
 int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int dec)
 {
+    // guard against possible multiple DecodeWorkers acting
+    std::lock_guard<std::mutex> guard(decodeDataIntoPlaybackMutex);
+
     void *writeBufferPtr;
     int toWriteFrameCount;
-    ring_buffer_size_t framesWritten;
+    ring_buffer_size_t framesWritten = 0;
 
     if (sampleRate == 48000)
     {
+
+
         writeBufferPtr = this->opusDecodeBuffer;
 
         if (sampleFormat == paFloat32)
@@ -285,7 +291,10 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
 
     // we need to decode all data in sequence order
     // however, if there is not enough place in the Pa RingBuffer then for now we will just drop any data so audio playback loss might occur
-    framesWritten = this->WriteRingBuffer(writeBufferPtr, toWriteFrameCount);
+    if (toWriteFrameCount > 0)
+    {
+        framesWritten = this->WriteRingBuffer(writeBufferPtr, toWriteFrameCount);
+    }
     // framesWritten could be less than GetRingBufferWriteAvailable -> TODO notify?
 
     return framesWritten;
