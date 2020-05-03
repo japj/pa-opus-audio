@@ -88,13 +88,16 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
 {
     (void)outputBuffer; /* Prevent "unused variable" warnings. */
 
-    unsigned long availableWriteFramesInRingBuffer = (unsigned long)PaUtil_GetRingBufferWriteAvailable(&this->rBufFromRT);
+    unsigned long availableInWriteBuffer = (unsigned long)PaUtil_GetRingBufferWriteAvailable(&this->rBufFromRT);
     ring_buffer_size_t written = 0;
 
+    // always record as much available audio as possible, even if there is not enough space to fill ringbuffer
+    unsigned long toCopyData = (framesPerBuffer > availableInWriteBuffer) ? availableInWriteBuffer : framesPerBuffer;
+
     // for now, we only write to the ring buffer if enough space is available
-    if (framesPerBuffer <= availableWriteFramesInRingBuffer)
+    if (toCopyData > 0)
     {
-        written = PaUtil_WriteRingBuffer(&this->rBufFromRT, inputBuffer, framesPerBuffer);
+        written = PaUtil_WriteRingBuffer(&this->rBufFromRT, inputBuffer, toCopyData);
         // check if fully written?
 
         framesWrittenSinceLastCallback += written;
@@ -114,7 +117,11 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
     }
     else
     {
-        printf("paInputCallback: not enough space in ringbuffer: needed(%ld), available(%ld)\n", framesPerBuffer, availableWriteFramesInRingBuffer);
+        printf("paInputCallback: not enough space in ringbuffer: needed(%ld), available(%ld)\n", framesPerBuffer, availableInWriteBuffer);
+    }
+    if (written != framesPerBuffer)
+    {
+        printf("paInputCallback: partial written(%d), needed(%ld)\n", written, framesPerBuffer);
     }
 
     // if we can't write data to ringbuffer, stop recording for now to early detect issues

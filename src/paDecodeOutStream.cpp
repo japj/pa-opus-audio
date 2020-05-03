@@ -91,13 +91,17 @@ int paDecodeOutStream::paOutputCallback(
     unsigned long toCopyData = (framesPerBuffer > availableInReadBuffer) ? availableInReadBuffer : framesPerBuffer;
     if (toCopyData > 0)
     {
-        actualFramesRead = PaUtil_ReadRingBuffer(&this->rBufToRT, outputBuffer, framesPerBuffer);
+        actualFramesRead = PaUtil_ReadRingBuffer(&this->rBufToRT, outputBuffer, toCopyData);
 
         // if actualFramesRead < framesPerBuffer then we read not enough data
     }
     else
     {
         printf("paOutputCallback: not enough data available needed(%ld), available(%ld)\n", framesPerBuffer, availableInReadBuffer);
+    }
+    if (actualFramesRead != framesPerBuffer)
+    {
+        printf("paOutputCallback: partial read(%d), needed(%ld)\n", actualFramesRead, framesPerBuffer);
     }
 
     // TODO: if framesPerBuffer > availableInReadBuffer we have a buffer underrun, notify?
