@@ -19,8 +19,14 @@ private:
     int sampleSizeSizeBytes;
     int channels;
     OpusDecoder *decoder;
+    /*
+    opusMaxFrameSize notes:
+    relates to opus_decode number of samples per channel of available space in pcm. 
+    If this is less than the maximum packet duration (120ms; 5760 for 48kHz), this function will not be capable of decoding some packets.
+    */
     void *opusDecodeBuffer;
     int opusMaxFrameSize;
+    int firstFramesize;
     /* END data for playback opus decoder */
 
     /* PaStream info */

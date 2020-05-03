@@ -27,14 +27,12 @@ paDecodeOutStream::paDecodeOutStream(/* args */)
                                      // 2 gives garbled sound?
     paCallbackFramesPerBuffer = 128; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                                 // frames per buffer for OS Audio buffer*/
-    opusMaxFrameSize = 120;          // 2.5ms@48kHz number of samples per channel in the input signal
-
-    //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
-    // for better analysis of the audio I am sending with 60ms from opusrtp
+    opusMaxFrameSize = 5760;         // maximum packet duration (120ms; 5760 for 48kHz)
 
     maxRingBufferSamples = 0;
     stream = NULL;
     decoder = NULL;
+    firstFramesize = 0;
 
     setupPa();
 }
@@ -137,11 +135,9 @@ PaError paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
 
     const PaStreamInfo *streamInfo;
     streamInfo = Pa_GetStreamInfo(stream);
-    int outputLatency = streamInfo->outputLatency * streamInfo->sampleRate * 3;
+    int outputLatency = streamInfo->outputLatency * streamInfo->sampleRate * 2;
 
-    int opusBasedLatency = 3 * opusMaxFrameSize;
-    maxRingBufferSamples = (outputLatency > opusBasedLatency) ? outputLatency : opusBasedLatency;
-    maxRingBufferSamples = calcSizeUpPow2(maxRingBufferSamples); // needed for PaUtil RingBuffer to work
+    maxRingBufferSamples = calcSizeUpPow2(outputLatency); // needed for PaUtil RingBuffer to work
     printf("maxRingBufferSamples: %ld\n", maxRingBufferSamples);
 
     /*int callbackBasedLatency = 
@@ -160,7 +156,7 @@ PaError paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
     err = PaUtil_InitializeRingBuffer(&this->rBufToRT, sampleSizeSizeBytes, this->maxRingBufferSamples, this->rBufToRTData);
     PaCHK("paDecodeOutStream:PaUtil_InitializeRingBuffer", err);
 
-    this->opusDecodeBuffer = ALLIGNEDMALLOC(bufferSize);
+    this->opusDecodeBuffer = ALLIGNEDMALLOC(sampleSizeSizeBytes * this->opusMaxFrameSize);
 
     return err;
 }
@@ -286,6 +282,16 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
                                                  this->opusMaxFrameSize,
                                                  dec);
         }
+
+        if (firstFramesize == 0)
+        {
+            firstFramesize = decodedFrameCount;
+            printf("\nfirstFramesize(%d)\n", firstFramesize);
+        }
+        if (decodedFrameCount < 0)
+        {
+            printf("DecodeDataIntoPlayback:OpusDecode failed\n");
+        }
     }
     else
     {
@@ -309,7 +315,7 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
     }
     if (framesWritten != decodedFrameCount)
     {
-        printf("DecodeDataIntoPlayback: decoded(%d) actual(%d)\n", decodedFrameCount, framesWritten);
+        printf("DecodeDataIntoPlayback: decoded(%d) written(%d)\n", decodedFrameCount, framesWritten);
     }
     // framesWritten could be less than GetRingBufferWriteAvailable -> TODO notify?
 
