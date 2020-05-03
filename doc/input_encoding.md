@@ -50,6 +50,8 @@ The `EncodeWorker` will perform the actual opus encoding of the data from the Ri
 - [opus_defines.h](https://www.opus-codec.org/docs/html_api-1.1.0/opus__defines_8h.html) contains additional interesting items:
   - `OPUS_SET_GAIN_REQUEST`  Scales the decoded output by a factor specified in Q8 dB units. This has a maximum range of -32768 to 32767 inclusive
 
+- `opus_encode` `max_packet` is the maximum number of bytes that can be written in the packet (4000 bytes is recommended)
+
 ## Opus Questions
 
 - default bitrate? based on numbers of channels and input sampling rate

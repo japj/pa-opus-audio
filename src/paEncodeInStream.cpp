@@ -349,7 +349,8 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
 
 int paEncodeInStream::GetUncompressedBufferSizeBytes()
 {
-    return this->sampleSizeSizeBytes * this->opusMaxFrameSize;
+    //max_packet is the maximum number of bytes that can be written in the packet (4000 bytes is recommended)
+    return 4000; //this->sampleSizeSizeBytes * this->opusMaxFrameSize;
 }
 
 void paEncodeInStream::setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback cb, void *userData)
