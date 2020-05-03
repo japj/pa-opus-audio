@@ -18,6 +18,7 @@ private:
     void *rBufFromRTData;
     /* END data for record callback*/
 
+    std::mutex encodeRecordingIntoDataMutex;
     /* BEGIN data for record opus encoder */
     int sampleSizeSizeBytes;
     int channels;

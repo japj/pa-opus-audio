@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <napi.h>
 #include "paDecodeOutStream.h"
 #include "paEncodeInStream.h"
@@ -23,7 +22,6 @@ public:
     Napi::Value OutputStopStream(const Napi::CallbackInfo &info);
 
     Napi::Value InputInitAndStartStream(const Napi::CallbackInfo &info);
-    Napi::Value EncodeRecordingIntoData(const Napi::CallbackInfo &info);
     Napi::Value InputStopStream(const Napi::CallbackInfo &info);
 
     Napi::Value SetEncodedFrameAvailableCallBack(const Napi::CallbackInfo &info);

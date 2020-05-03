@@ -250,7 +250,7 @@ int paDecodeOutStream::InitForDevice(PaDeviceIndex device)
 
 int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int dec)
 {
-    // guard against possible multiple DecodeWorkers acting
+    // guard against possible multiple DecodeWorkers interacting
     std::lock_guard<std::mutex> guard(decodeDataIntoPlaybackMutex);
 
     void *writeBufferPtr;
@@ -259,7 +259,6 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
 
     if (sampleRate == 48000)
     {
-
 
         writeBufferPtr = this->opusDecodeBuffer;
 

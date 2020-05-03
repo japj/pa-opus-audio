@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <memory.h>
+#include <mutex>
 #include "paEncodeInStream.h"
 
 /* This routine will be called by the PortAudio engine when audio is needed.
@@ -110,7 +111,9 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
             framesWrittenSinceLastCallback -= opusMaxFrameSize;
         }
         return paContinue;
-    } else {
+    }
+    else
+    {
         printf("paInputCallback: not enough space in ringbuffer: needed(%ld), available(%ld)\n", framesPerBuffer, availableWriteFramesInRingBuffer);
     }
 
@@ -151,7 +154,6 @@ PaError paEncodeInStream::ProtoOpenInputStream(PaDeviceIndex device)
     log_pa_stream_info(this->stream, &inputParameters);
     // need to use max (latency, opusframesize) to setup ringbuffer?
 
-
     // TODO: latency is more important than correctness of audio stream
     // if for whatever reason the ringBuffer gets full, we do not want to fill it with audio that will lag behind
     // thus we limit the maxRingBufferSamples to 10ms for now (4 * opus frame)
@@ -170,8 +172,8 @@ PaError paEncodeInStream::ProtoOpenInputStream(PaDeviceIndex device)
     /*maxRingBufferSamples = (inputLatency + paCallbackFramesPerBuffer > opusMaxFrameSize + paCallbackFramesPerBuffer) ? 
                             inputLatency + paCallbackFramesPerBuffer: 
                             opusMaxFrameSize + paCallbackFramesPerBuffer;*/
-     // TODO: calculate optimal ringbuffer size
-                                                                 // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
+    // TODO: calculate optimal ringbuffer size
+    // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
     this->sampleSizeSizeBytes = Pa_GetSampleSize(this->sampleFormat);
     long bufferSize = sampleSizeSizeBytes * this->maxRingBufferSamples;
     this->rBufFromRTData = ALLIGNEDMALLOC(bufferSize);
@@ -267,6 +269,9 @@ int paEncodeInStream::InitForDevice(PaDeviceIndex device)
 
 int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
 {
+    // guard against possible multiple EncoderWorker interacting
+    std::lock_guard<std::mutex> guard(encodeRecordingIntoDataMutex);
+
     // check minimum available space needed?
 
     int encodedPacketSize;

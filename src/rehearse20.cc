@@ -1,5 +1,6 @@
 #include "rehearse20.h"
 #include "DecodeWorker.h"
+#include "EncodeWorker.h"
 
 using namespace Napi;
 
@@ -130,25 +131,6 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
     return Napi::Number::New(env, 0);
 }
 
-Napi::Value Rehearse20::EncodeRecordingIntoData(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize);
-    if (encodedPacketSize > 0)
-    {
-        // TODO: busy looping, needs API design based on notification/callbacks
-
-        Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, this->encodeBuffer, encodedPacketSize);
-        return buffer;
-    }
-    else
-    {
-        // return NULL object
-        return env.Null();
-    }
-}
-
 // static callback for NAPI
 void Rehearse20::JsThreadHandleEncodeInStreamCallback(Napi::Env env, Napi::Function jsCallback, void *value)
 {
@@ -159,17 +141,11 @@ void Rehearse20::JsThreadHandleEncodeInStreamCallback(Napi::Env env, Napi::Funct
 
 void Rehearse20::handleEncodeInStreamCallback(Napi::Env env, Napi::Function jsCallback)
 {
-    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize);
-    if (encodedPacketSize > 0)
-    {
-        Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, this->encodeBuffer, encodedPacketSize);
-        jsCallback.Call({buffer});
-    }
-    else
-    {
-        // return NULL object
-        jsCallback.Call({env.Null()});
-    }
+    // run the actual encoding in a seperate worker
+    // TODO: how to ensure multiple EncodeWorkers don't run into each other (or order gets confused)?
+
+    EncodeWorker *wk = new EncodeWorker(jsCallback, &this->input);
+    wk->Queue();
 }
 
 // trigger the async execution of the ThreadSafeFunction
