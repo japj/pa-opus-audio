@@ -67,6 +67,8 @@ int paEncodeInStream::InitPaInputData()
 
     if (this->sampleRate == 48000)
     {
+        // OPUS_APPLICATION_RESTRICTED_LOWDELAY configures low-delay mode that disables the speech-optimized mode in exchange for 
+        // slightly reduced delay. This mode can only be set on an newly initialized or freshly reset encoder because it changes the codec delay.
         this->encoder = opus_encoder_create(this->sampleRate, this->channels, OPUS_APPLICATION_RESTRICTED_LOWDELAY,
                                             &err);
         if (this->encoder == NULL)
