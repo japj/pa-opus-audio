@@ -41,6 +41,8 @@ private:
     //unsigned int channels; already as part of decoder needed data;
 
     PaStreamParameters outputParameters;
+    // don't log missing audio data before decoding has started
+    bool firstDecodeCalled;
     /* */
 
 public:

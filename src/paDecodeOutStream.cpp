@@ -33,6 +33,7 @@ paDecodeOutStream::paDecodeOutStream(/* args */)
     stream = NULL;
     decoder = NULL;
     firstFramesize = 0;
+    firstDecodeCalled = false;
 
     setupPa();
 }
@@ -95,11 +96,17 @@ int paDecodeOutStream::paOutputCallback(
     }
     else
     {
-        printf("paOutputCallback: not enough data available needed(%ld), available(%ld)\n", framesPerBuffer, availableInReadBuffer);
+        if (firstDecodeCalled)
+        {
+            printf("paOutputCallback: not enough data available needed(%ld), available(%ld)\n", framesPerBuffer, availableInReadBuffer);
+        }
     }
     if (toCopyData > 0 && actualFramesRead != framesPerBuffer)
     {
-        printf("paOutputCallback: partial read(%d), needed(%ld)\n", actualFramesRead, framesPerBuffer);
+        if (firstDecodeCalled)
+        {
+            printf("paOutputCallback: partial read(%d), needed(%ld)\n", actualFramesRead, framesPerBuffer);
+        }
     }
 
     // TODO: if framesPerBuffer > availableInReadBuffer we have a buffer underrun, notify?
@@ -252,6 +259,10 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
 {
     // guard against possible multiple DecodeWorkers interacting
     std::lock_guard<std::mutex> guard(decodeDataIntoPlaybackMutex);
+    if (!firstDecodeCalled)
+    {
+        firstDecodeCalled = true;
+    }
 
     int ringBufferWriteAvailable = this->GetRingBufferWriteAvailable();
 
@@ -286,7 +297,7 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
         if (firstFramesize == 0)
         {
             firstFramesize = decodedFrameCount;
-            printf("\nfirstFramesize(%d)\n", firstFramesize);
+            printf("\nDecodeDataIntoPlayback::firstFramesize(%d)\n", firstFramesize);
         }
         if (decodedFrameCount < 0)
         {

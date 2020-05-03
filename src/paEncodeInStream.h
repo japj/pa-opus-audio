@@ -38,6 +38,8 @@ private:
                                    // frames per buffer for OS Audio buffer*/
 
     PaStreamParameters inputParameters;
+    // don't log missing audio data before encoding has started
+    bool firstEncodeCalled;
     /* */
 
     paEncodeInStreamOpusFrameAvailableCallback *userCallbackOpusFrameAvailable;

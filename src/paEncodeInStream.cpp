@@ -39,6 +39,7 @@ paEncodeInStream::paEncodeInStream(/* args */)
     userDataCallbackOpusFrameAvailable = NULL;
     userCallbackOpusFrameAvailable = NULL;
     framesWrittenSinceLastCallback = 0;
+    firstEncodeCalled = false;
 
     stream = NULL;
     encoder = NULL;
@@ -119,11 +120,17 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
     }
     else
     {
-        printf("paInputCallback: not enough space in ringbuffer: needed(%ld), available(%ld)\n", framesPerBuffer, availableInWriteBuffer);
+        if (firstEncodeCalled)
+        {
+            printf("paInputCallback: not enough space in ringbuffer: needed(%ld), available(%ld)\n", framesPerBuffer, availableInWriteBuffer);
+        }
     }
     if (written > 0 && written != framesPerBuffer)
     {
-        printf("paInputCallback: partial written(%d), needed(%ld)\n", written, framesPerBuffer);
+        if (firstEncodeCalled)
+        {
+            printf("paInputCallback: partial written(%d), needed(%ld)\n", written, framesPerBuffer);
+        }
     }
 
     // if we can't write data to ringbuffer, stop recording for now to early detect issues
@@ -280,6 +287,10 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
 {
     // guard against possible multiple EncoderWorker interacting
     std::lock_guard<std::mutex> guard(encodeRecordingIntoDataMutex);
+    if (!firstEncodeCalled)
+    {
+        firstEncodeCalled = true;
+    }
 
     // check minimum available space needed?
 
