@@ -119,7 +119,7 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
     {
         printf("paInputCallback: not enough space in ringbuffer: needed(%ld), available(%ld)\n", framesPerBuffer, availableInWriteBuffer);
     }
-    if (written != framesPerBuffer)
+    if (written > 0 && written != framesPerBuffer)
     {
         printf("paInputCallback: partial written(%d), needed(%ld)\n", written, framesPerBuffer);
     }
@@ -169,9 +169,9 @@ PaError paEncodeInStream::ProtoOpenInputStream(PaDeviceIndex device)
 
     const PaStreamInfo *streamInfo;
     streamInfo = Pa_GetStreamInfo(stream);
-    int inputLatency = streamInfo->inputLatency * streamInfo->sampleRate * 2;
+    int inputLatency = streamInfo->inputLatency * streamInfo->sampleRate * 1;
 
-    int opusBasedLatency = 2 * opusMaxFrameSize;
+    int opusBasedLatency = 1 * opusMaxFrameSize;
     maxRingBufferSamples = (inputLatency > opusBasedLatency) ? inputLatency : opusBasedLatency;
     maxRingBufferSamples = calcSizeUpPow2(maxRingBufferSamples); // needed for PaUtil RingBuffer to work
     printf("maxRingBufferSamples: %ld\n", maxRingBufferSamples);
@@ -349,4 +349,10 @@ void paEncodeInStream::setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFra
 {
     this->userCallbackOpusFrameAvailable = cb;
     this->userDataCallbackOpusFrameAvailable = userData;
+}
+
+int paEncodeInStream::GetOpusFullFramesReadAvailable()
+{
+    int result = GetRingBufferReadAvailable() / opusMaxFrameSize;
+    return result;
 }

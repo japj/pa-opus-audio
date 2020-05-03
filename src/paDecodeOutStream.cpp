@@ -21,13 +21,13 @@ static int paStaticOutputCallback(const void *inputBuffer,
 
 paDecodeOutStream::paDecodeOutStream(/* args */)
 {
-    sampleRate = 48000;             // opus only allows certain sample rates for encoding
-    sampleFormat = paInt16;         //paFloat32 or paInt16;
-    channels = 1;                   //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
-                                    // 2 gives garbled sound?
-    paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
+    sampleRate = 48000;              // opus only allows certain sample rates for encoding
+    sampleFormat = paInt16;          //paFloat32 or paInt16;
+    channels = 1;                    //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
+                                     // 2 gives garbled sound?
+    paCallbackFramesPerBuffer = 128; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                                 // frames per buffer for OS Audio buffer*/
-    opusMaxFrameSize = 120;         // 2.5ms@48kHz number of samples per channel in the input signal
+    opusMaxFrameSize = 120;          // 2.5ms@48kHz number of samples per channel in the input signal
 
     //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
     // for better analysis of the audio I am sending with 60ms from opusrtp
@@ -99,7 +99,7 @@ int paDecodeOutStream::paOutputCallback(
     {
         printf("paOutputCallback: not enough data available needed(%ld), available(%ld)\n", framesPerBuffer, availableInReadBuffer);
     }
-    if (actualFramesRead != framesPerBuffer)
+    if (toCopyData > 0 && actualFramesRead != framesPerBuffer)
     {
         printf("paOutputCallback: partial read(%d), needed(%ld)\n", actualFramesRead, framesPerBuffer);
     }
@@ -137,9 +137,9 @@ PaError paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
 
     const PaStreamInfo *streamInfo;
     streamInfo = Pa_GetStreamInfo(stream);
-    int outputLatency = streamInfo->outputLatency * streamInfo->sampleRate * 2;
+    int outputLatency = streamInfo->outputLatency * streamInfo->sampleRate * 3;
 
-    int opusBasedLatency = 2 * opusMaxFrameSize;
+    int opusBasedLatency = 3 * opusMaxFrameSize;
     maxRingBufferSamples = (outputLatency > opusBasedLatency) ? outputLatency : opusBasedLatency;
     maxRingBufferSamples = calcSizeUpPow2(maxRingBufferSamples); // needed for PaUtil RingBuffer to work
     printf("maxRingBufferSamples: %ld\n", maxRingBufferSamples);
@@ -257,8 +257,11 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
     // guard against possible multiple DecodeWorkers interacting
     std::lock_guard<std::mutex> guard(decodeDataIntoPlaybackMutex);
 
+    int ringBufferWriteAvailable = this->GetRingBufferWriteAvailable();
+
     void *writeBufferPtr;
     int toWriteFrameCount;
+    int decodedFrameCount;
     ring_buffer_size_t framesWritten = 0;
 
     if (sampleRate == 48000)
@@ -268,7 +271,7 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
 
         if (sampleFormat == paFloat32)
         {
-            toWriteFrameCount = this->opusDecodeFloat((unsigned char *)data,
+            decodedFrameCount = this->opusDecodeFloat((unsigned char *)data,
                                                       len,
                                                       (float *)this->opusDecodeBuffer,
                                                       this->opusMaxFrameSize,
@@ -277,7 +280,7 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
         else
         {
             // we assume paInt16;
-            toWriteFrameCount = this->OpusDecode((unsigned char *)data,
+            decodedFrameCount = this->OpusDecode((unsigned char *)data,
                                                  len,
                                                  (opus_int16 *)this->opusDecodeBuffer,
                                                  this->opusMaxFrameSize,
@@ -289,14 +292,24 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
         // only support encode/decoding with opus
         // so for now treat this as "pass-through" audio
         writeBufferPtr = data;
-        toWriteFrameCount = len;
+        decodedFrameCount = len;
     }
+
+    toWriteFrameCount = decodedFrameCount > ringBufferWriteAvailable ? ringBufferWriteAvailable : decodedFrameCount;
 
     // we need to decode all data in sequence order
     // however, if there is not enough place in the Pa RingBuffer then for now we will just drop any data so audio playback loss might occur
     if (toWriteFrameCount > 0)
     {
         framesWritten = this->WriteRingBuffer(writeBufferPtr, toWriteFrameCount);
+    }
+    if (framesWritten != toWriteFrameCount)
+    {
+        printf("DecodeDataIntoPlayback: writeRingBuffer tried(%d) actual(%d)\n", toWriteFrameCount, framesWritten);
+    }
+    if (framesWritten != decodedFrameCount)
+    {
+        printf("DecodeDataIntoPlayback: decoded(%d) actual(%d)\n", decodedFrameCount, framesWritten);
     }
     // framesWritten could be less than GetRingBufferWriteAvailable -> TODO notify?
 

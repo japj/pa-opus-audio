@@ -6,6 +6,11 @@ EncodeWorker::EncodeWorker(Napi::Function &callback, paEncodeInStream *input) : 
 
 void EncodeWorker::Execute()
 {
+    int opusFullFramesReadAvailable = input->GetOpusFullFramesReadAvailable();
+    if (opusFullFramesReadAvailable > 1)
+    {
+        printf("EncodeWorker::Execute could do (%d) more opus encodings\n", opusFullFramesReadAvailable);
+    }
     int encodeBufferSize = input->GetUncompressedBufferSizeBytes();
     this->data = (uint8_t *)malloc(encodeBufferSize);
 

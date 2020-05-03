@@ -62,6 +62,7 @@ public:
 
     /* TODO: some of these functions are here due to the move in progres and might not end up as part of the final API */
     int GetRingBufferReadAvailable(); // usefull for diagnostics
+    int GetOpusFullFramesReadAvailable();
 
     void setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback cb, void *userData);
 
