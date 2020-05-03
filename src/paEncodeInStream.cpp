@@ -34,11 +34,7 @@ paEncodeInStream::paEncodeInStream(/* args */)
     //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
     // for better analysis of the audio I am sending with 60ms from opusrtp
 
-    // TODO: latency is more important than correctness of audio stream
-    // if for whatever reason the ringBuffer gets full, we do not want to fill it with audio that will lag behind
-    // thus we limit the maxRingBufferSamples to 10ms for now (4 * opus frame)
-    maxRingBufferSamples = calcSizeUpPow2(opusMaxFrameSize * 4); // TODO: calculate optimal ringbuffer size
-                                                                 // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
+    maxRingBufferSamples = 0;
     userDataCallbackOpusFrameAvailable = NULL;
     userCallbackOpusFrameAvailable = NULL;
     framesWrittenSinceLastCallback = 0;
@@ -68,15 +64,9 @@ int paEncodeInStream::InitPaInputData()
 {
     int err;
 
-    this->sampleSizeSizeBytes = Pa_GetSampleSize(this->sampleFormat);
-    long bufferSize = sampleSizeSizeBytes * this->maxRingBufferSamples;
-    this->rBufFromRTData = ALLIGNEDMALLOC(bufferSize);
-    err = PaUtil_InitializeRingBuffer(&this->rBufFromRT, sampleSizeSizeBytes, this->maxRingBufferSamples, this->rBufFromRTData);
-    PaCHK("paEncodeInStream:PaUtil_InitializeRingBuffer", err);
-
     if (this->sampleRate == 48000)
     {
-        this->encoder = opus_encoder_create(this->sampleRate, this->channels, OPUS_APPLICATION_AUDIO,
+        this->encoder = opus_encoder_create(this->sampleRate, this->channels, OPUS_APPLICATION_RESTRICTED_LOWDELAY,
                                             &err);
         if (this->encoder == NULL)
         {
@@ -85,8 +75,6 @@ int paEncodeInStream::InitPaInputData()
             return -1;
         }
     }
-
-    this->opusEncodeBuffer = ALLIGNEDMALLOC(bufferSize);
 
     return 0;
 }
@@ -122,6 +110,8 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
             framesWrittenSinceLastCallback -= opusMaxFrameSize;
         }
         return paContinue;
+    } else {
+        printf("paInputCallback: not enough space in ringbuffer: needed(%ld), available(%ld)\n", framesPerBuffer, availableWriteFramesInRingBuffer);
     }
 
     // if we can't write data to ringbuffer, stop recording for now to early detect issues
@@ -159,6 +149,36 @@ PaError paEncodeInStream::ProtoOpenInputStream(PaDeviceIndex device)
 
     printf("ProtoOpenInputStream information:\n");
     log_pa_stream_info(this->stream, &inputParameters);
+    // need to use max (latency, opusframesize) to setup ringbuffer?
+
+
+    // TODO: latency is more important than correctness of audio stream
+    // if for whatever reason the ringBuffer gets full, we do not want to fill it with audio that will lag behind
+    // thus we limit the maxRingBufferSamples to 10ms for now (4 * opus frame)
+    // 2020-05-03: after discussion with Paul, we go for a ringbuffer size of opusMaxFrameSize and see how
+    // it behaves with minimal settings
+
+    const PaStreamInfo *streamInfo;
+    streamInfo = Pa_GetStreamInfo(stream);
+    int inputLatency = streamInfo->inputLatency * streamInfo->sampleRate * 2;
+
+    int opusBasedLatency = 2 * opusMaxFrameSize;
+    maxRingBufferSamples = (inputLatency > opusBasedLatency) ? inputLatency : opusBasedLatency;
+    maxRingBufferSamples = calcSizeUpPow2(maxRingBufferSamples); // needed for PaUtil RingBuffer to work
+    printf("maxRingBufferSamples: %ld\n", maxRingBufferSamples);
+
+    /*maxRingBufferSamples = (inputLatency + paCallbackFramesPerBuffer > opusMaxFrameSize + paCallbackFramesPerBuffer) ? 
+                            inputLatency + paCallbackFramesPerBuffer: 
+                            opusMaxFrameSize + paCallbackFramesPerBuffer;*/
+     // TODO: calculate optimal ringbuffer size
+                                                                 // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
+    this->sampleSizeSizeBytes = Pa_GetSampleSize(this->sampleFormat);
+    long bufferSize = sampleSizeSizeBytes * this->maxRingBufferSamples;
+    this->rBufFromRTData = ALLIGNEDMALLOC(bufferSize);
+    err = PaUtil_InitializeRingBuffer(&this->rBufFromRT, sampleSizeSizeBytes, this->maxRingBufferSamples, this->rBufFromRTData);
+    PaCHK("paEncodeInStream:PaUtil_InitializeRingBuffer", err);
+
+    this->opusEncodeBuffer = ALLIGNEDMALLOC(bufferSize);
     return err;
 }
 
@@ -257,6 +277,7 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     ring_buffer_size_t availableInInputBuffer = this->GetRingBufferReadAvailable();
     if (availableInInputBuffer < opusMaxFrameSize)
     {
+        printf("EncodeRecordingIntoData no full opus frame available\n");
         // don' try to read/encode if no full opus frame is available;
         return 0;
     }
@@ -264,7 +285,6 @@ int paEncodeInStream::EncodeRecordingIntoData(void *data, opus_int32 len)
     // can only run opus encoding/decoding on 48000 samplerate
     if (sampleRate == 48000)
     {
-
         framesRead = this->ReadRingBuffer(&this->rBufFromRT, this->opusEncodeBuffer, opusMaxFrameSize);
 
         // use float32 or int16 opus encoder/decoder

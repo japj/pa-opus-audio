@@ -49,7 +49,9 @@
         "pretest": "tsc",
         "test": "node ./test/test_binding.js",
         "preprotoring": "npm run build && tsc",
-        "protoring": "node ./test/test_protoring.js"
+        "protoring": "node ./test/test_protoring.js",
+        "preduplex": "npm run build && tsc",
+        "duplex": "node ./test/test_duplex.js"
     },
     "main": "./lib/binding.js",
     "types": "./lib/binding.d.ts"

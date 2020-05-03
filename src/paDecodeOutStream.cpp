@@ -25,14 +25,14 @@ paDecodeOutStream::paDecodeOutStream(/* args */)
     sampleFormat = paInt16;         //paFloat32 or paInt16;
     channels = 1;                   //?2; // needs to be 1 if you want to output recorded audio directly without opus enc/dec in order to get same amount of data/structure mono/stereo
                                     // 2 gives garbled sound?
-    bufferElements = 4096;          // TODO: calculate optimal ringbuffer size
-                                    // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
     paCallbackFramesPerBuffer = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                                 // frames per buffer for OS Audio buffer*/
     opusMaxFrameSize = 120;         // 2.5ms@48kHz number of samples per channel in the input signal
 
     //opusMaxFrameSize                = 2880;     // 2280 is sample buffer size for decoding at at 48kHz with 60ms
     // for better analysis of the audio I am sending with 60ms from opusrtp
+
+    maxRingBufferSamples = 0;
     stream = NULL;
     decoder = NULL;
 
@@ -58,15 +58,6 @@ int paDecodeOutStream::InitPaOutputData()
 {
     int err;
 
-    long writeDataBufElementCount = this->bufferElements;
-    long writeSampleSize = Pa_GetSampleSize(this->sampleFormat);
-    long bufferSize = writeSampleSize * writeDataBufElementCount;
-    this->rBufToRTData = ALLIGNEDMALLOC(bufferSize);
-    err = PaUtil_InitializeRingBuffer(&this->rBufToRT, writeSampleSize, writeDataBufElementCount, this->rBufToRTData);
-    PaCHK("paDecodeOutStream:PaUtil_InitializeRingBuffer", err);
-
-    this->frameSizeBytes = writeSampleSize;
-
     if (this->sampleRate == 48000)
     {
         this->decoder = opus_decoder_create(this->sampleRate, this->channels, &err);
@@ -77,8 +68,6 @@ int paDecodeOutStream::InitPaOutputData()
             return -1;
         }
     }
-
-    this->opusDecodeBuffer = ALLIGNEDMALLOC(bufferSize);
 
     return 0;
 }
@@ -93,16 +82,20 @@ int paDecodeOutStream::paOutputCallback(
     (void)inputBuffer; /* Prevent "unused variable" warnings. */
 
     /* Reset output data first */
-    memset(outputBuffer, 0, framesPerBuffer * this->channels * this->frameSizeBytes);
+    memset(outputBuffer, 0, framesPerBuffer * this->channels * this->sampleSizeSizeBytes);
 
     unsigned long availableInReadBuffer = (unsigned long)PaUtil_GetRingBufferReadAvailable(&this->rBufToRT);
     ring_buffer_size_t actualFramesRead = 0;
-
-    if (availableInReadBuffer >= framesPerBuffer)
+    
+    // always playback available audio, even if it is not enough to fill entire framesPerBuffer requested
+    unsigned long toCopyData = (framesPerBuffer > availableInReadBuffer) ? availableInReadBuffer : framesPerBuffer;
+    if (toCopyData > 0)
     {
         actualFramesRead = PaUtil_ReadRingBuffer(&this->rBufToRT, outputBuffer, framesPerBuffer);
 
         // if actualFramesRead < framesPerBuffer then we read not enough data
+    } else {
+        printf("paOutputCallback: not enough data available needed(%ld), available(%ld)\n", framesPerBuffer, availableInReadBuffer);
     }
 
     // TODO: if framesPerBuffer > availableInReadBuffer we have a buffer underrun, notify?
@@ -135,6 +128,35 @@ PaError paDecodeOutStream::ProtoOpenOutputStream(PaDeviceIndex device)
 
     printf("ProtoOpenOutputStream information:\n");
     log_pa_stream_info(this->stream, &outputParameters);
+
+    const PaStreamInfo *streamInfo;
+    streamInfo = Pa_GetStreamInfo(stream);
+    int outputLatency = streamInfo->outputLatency * streamInfo->sampleRate * 2;
+
+    int opusBasedLatency = 2 * opusMaxFrameSize;
+    maxRingBufferSamples = (outputLatency > opusBasedLatency) ? outputLatency : opusBasedLatency;
+    maxRingBufferSamples = calcSizeUpPow2(maxRingBufferSamples); // needed for PaUtil RingBuffer to work
+    printf("maxRingBufferSamples: %ld\n", maxRingBufferSamples);
+
+    /*int callbackBasedLatency = 
+
+    maxRingBufferSamples = (opaCallbackFramesPerBuffer > opusMaxFrameSize + paCallbackFramesPerBuffer) ? 
+                                outputLatency + paCallbackFramesPerBuffer : 
+                                opusMaxFrameSize + paCallbackFramesPerBuffer;
+    */
+    
+    // TODO: calculate optimal ringbuffer size
+                                                                 // note opusDecodeBuffer is opusMaxFrameSize * sizeof sampleFormatInBytes
+
+
+    this->sampleSizeSizeBytes = Pa_GetSampleSize(this->sampleFormat);
+    long bufferSize = sampleSizeSizeBytes * this->maxRingBufferSamples;
+    this->rBufToRTData = ALLIGNEDMALLOC(bufferSize);
+    err = PaUtil_InitializeRingBuffer(&this->rBufToRT, sampleSizeSizeBytes, this->maxRingBufferSamples, this->rBufToRTData);
+    PaCHK("paDecodeOutStream:PaUtil_InitializeRingBuffer", err);
+
+    this->opusDecodeBuffer = ALLIGNEDMALLOC(bufferSize);
+
     return err;
 }
 

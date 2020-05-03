@@ -14,7 +14,7 @@ private:
     /* END data for playback callback*/
 
     /* BEGIN data for playback opus decoder */
-    int frameSizeBytes;
+    int sampleSizeSizeBytes;
     int channels;
     OpusDecoder *decoder;
     void *opusDecodeBuffer;
@@ -27,7 +27,7 @@ private:
     /* this is data that is needed for calculation of information and cannot change after opening stream*/
     unsigned int sampleRate;
     PaSampleFormat sampleFormat;
-    long bufferElements;           // = 4096; // TODO: calculate optimal ringbuffer size
+    long maxRingBufferSamples;     // = 4096; // TODO: calculate optimal ringbuffer size
     int paCallbackFramesPerBuffer; // = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                    // frames per buffer for OS Audio buffer*/
     //unsigned int channels; already as part of decoder needed data;
