@@ -129,7 +129,7 @@ int paEncodeInStream::paInputCallback(const void *inputBuffer,
     {
         if (firstEncodeCalled)
         {
-            printf("paInputCallback: partial written(%d), needed(%ld)\n", written, framesPerBuffer);
+            printf("paInputCallback: partial written(%ld), needed(%ld)\n", written, framesPerBuffer);
         }
     }
 
