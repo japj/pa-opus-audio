@@ -1,11 +1,17 @@
 #include "rehearse20.h"
+#if USE_OLD_ENCODE_DECODE_STREAM
 #include "DecodeWorker.h"
 #include "EncodeWorker.h"
+#else
+int protoring();
+#endif
 #include "tryout.h"
 
 using namespace Napi;
 
-Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info)
+Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info),
+                                                         input("input"),
+                                                         output("output")
 {
     Napi::Env env = info.Env();
 
@@ -76,11 +82,17 @@ Napi::Value Rehearse20::Protoring(const Napi::CallbackInfo &info)
 Napi::Value Rehearse20::OutputInitAndStartStream(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-    int result = output.InitForDevice();
+    int result = 0;
+#if USE_OLD_ENCODE_DECODE_STREAM
+    result = output.InitForDevice();
     if (result == 0)
     {
         result = output.StartStream();
     }
+#else
+    output.OpenOutputDeviceStream();
+    output.StartStream();
+#endif
 
     return Napi::Number::New(env, result);
 }
@@ -105,10 +117,15 @@ Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo &info)
 
     Buffer<uint8_t> buffer = info[0].As<Buffer<uint8_t>>();
 
+#if USE_OLD_ENCODE_DECODE_STREAM
     // run the actual decoding in a seperate worker
     // TODO: how to ensure multiple DecodeWorkers don't run into each other (or order gets confused)?
     DecodeWorker *wk = new DecodeWorker(env, buffer, &output);
     wk->Queue();
+#else
+    // TODO, split encoded data and sequencenumber for js part in orde to send across network
+    output.writeEncodedOpusFrame((poaCallbackTransferData *)buffer.Data());
+#endif
 
     return Napi::Number::New(env, 0);
 }
@@ -117,7 +134,9 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    int result = input.InitForDevice();
+    int result = 0;
+#if USE_OLD_ENCODE_DECODE_STREAM
+    result = input.InitForDevice();
 
     encodeBufferSize = input.GetUncompressedBufferSizeBytes();
     encodeBuffer = (uint8_t *)ALLIGNEDMALLOC(encodeBufferSize);
@@ -128,8 +147,13 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
     {
         result = input.StartStream();
     }
+#else
+    input.registerOpusFrameAvailableCb(paEncodeInStreamOpusFrameAvailableCallback, this);
+    input.OpenInputDeviceStream();
+    input.StartStream();
+#endif
 
-    return Napi::Number::New(env, 0);
+    return Napi::Number::New(env, result);
 }
 
 // static callback for NAPI
@@ -144,9 +168,24 @@ void Rehearse20::handleEncodeInStreamCallback(Napi::Env env, Napi::Function jsCa
 {
     // run the actual encoding in a seperate worker
     // TODO: how to ensure multiple EncodeWorkers don't run into each other (or order gets confused)?
-
+#if USE_OLD_ENCODE_DECODE_STREAM
     EncodeWorker *wk = new EncodeWorker(jsCallback, &this->input);
     wk->Queue();
+#else
+    // TODO
+    poaCallbackTransferData tData;
+    bool read = input.readEncodedOpusFrame(&tData);
+    if (read)
+    {
+        Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(Env(), (uint8_t *)&tData, sizeof(poaCallbackTransferData));
+        jsCallback.Call({buffer});
+    }
+    else
+    {
+        printf("readEncodedOpusFrame failed?? \n");
+        jsCallback.Call({Env().Null()});
+    }
+#endif
 }
 
 // trigger the async execution of the ThreadSafeFunction

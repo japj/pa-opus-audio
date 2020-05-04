@@ -1,9 +1,17 @@
 #pragma once
 
 #include <napi.h>
+
+#define USE_OLD_ENCODE_DECODE_STREAM 0
+
+#if USE_OLD_ENCODE_DECODE_STREAM
 #include "paDecodeOutStream.h"
 #include "paEncodeInStream.h"
 #include "paStreamCommon.h"
+#else
+#include "poaEncodeInput.h"
+#include "poaDecodeOutput.h"
+#endif
 
 class Rehearse20 : public Napi::ObjectWrap<Rehearse20>
 {
@@ -33,10 +41,15 @@ public:
 
 private:
     std::string _greeterName;
+#if USE_OLD_ENCODE_DECODE_STREAM
     paDecodeOutStream output;
     paEncodeInStream input;
     int encodeBufferSize;
     uint8_t *encodeBuffer;
+#else
+    poaDecodeOutput output;
+    poaEncodeInput input;
+#endif
 
     bool tsfnSet;
     Napi::ThreadSafeFunction tsfn;
