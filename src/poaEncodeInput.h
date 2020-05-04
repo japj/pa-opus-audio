@@ -23,6 +23,8 @@ public:
 
     void registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailableCb cb, void *userData);
 
+    int readEncodedOpusFrame(/*int &sequence_number,*/ void *buffer, int buffer_size);
+
     virtual int _HandlePaStreamCallback(const void *inputBuffer,
                                         void *outputBuffer,
                                         unsigned long framesPerBuffer,

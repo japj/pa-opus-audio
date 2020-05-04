@@ -17,6 +17,8 @@ public:
     poaDecodeOutput(const char *name);
     ~poaDecodeOutput();
 
+    bool writeEncodedOpusFrame(/*int &sequence_number, */ void *data, int data_length);
+
     virtual int _HandlePaStreamCallback(const void *inputBuffer,
                                         void *outputBuffer,
                                         unsigned long framesPerBuffer,

@@ -17,7 +17,6 @@ class HandleOpusDataTransferCallback
     // callback handler that is called from paEncodeInstream to notify that an opus frame is available
     static void callbackHandler(void *userData)
     {
-        printf("\nHandleOpusDataTransferCallback::callbackHandler\n");
         HandleOpusDataTransferCallback *p = (HandleOpusDataTransferCallback *)userData;
         p->HandleOneOpusFrameAvailable();
     }
@@ -26,10 +25,11 @@ public:
     HandleOpusDataTransferCallback(poaEncodeInput *input, poaDecodeOutput *output)
     {
         in = input;
-        out = output; /*
-        bufferSize = in->GetUncompressedBufferSizeBytes();
-        transferBuffer = ALLIGNEDMALLOC(bufferSize);
+        out = output;
+        bufferSize = 10240;                  //in->GetUncompressedBufferSizeBytes();
+        transferBuffer = malloc(bufferSize); //ALLIGNEDMALLOC(bufferSize);
         cbCount = 0;
+        /*
         cbCountErrors = 0;
         totalEncodedPacketSize = 0;
         totalFramesWritten = 0;*/
@@ -40,10 +40,29 @@ public:
 
     void HandleOneOpusFrameAvailable()
     {
-        printf("\nHandleOpusDataTransferCallback::HandleOneOpusFrameAvailable\n");
+        //printf("\nHandleOpusDataTransferCallback::HandleOneOpusFrameAvailable\n");
+        cbCount++;
+
+        int read = in->readEncodedOpusFrame(transferBuffer, bufferSize);
+        if (read > 0)
+        {
+            bool write = out->writeEncodedOpusFrame(transferBuffer, read);
+            if (!write)
+            {
+                printf("\nHandleOneOpusFrameAvailable: FAILED writeEncodedOpusFrame at %d\n", cbCount);
+            }
+        }
+
+        // this should happen once every second due to 2.5ms frame
+        if (cbCount % 400 == 0)
+        {
+            // error
+            printf("HandleOneOpusFrameAvailable cbCount: %5d, readBytes: %5d\n",
+                   cbCount, read);
+        }
 
         /*
-        cbCount++;
+
         ring_buffer_size_t framesWritten = 0;
         int encodedPacketSize = in->EncodeRecordingIntoData(transferBuffer, bufferSize);
 
@@ -59,27 +78,21 @@ public:
         else
         {
             cbCountErrors++;
-        }
-
-        // this should happen once every second due to 2.5ms frame
-        if (cbCount % 400 == 0)
-        {
-            // error
-            printf("HandleOneOpusFrameAvailable cbCount: %5d, cbErrors: %5d, framesWritten:%5d, encodedSize:%5d \n",
-                   cbCount, cbCountErrors, totalFramesWritten, totalEncodedPacketSize);
         }*/
     }
 
 private:
     poaEncodeInput *in;
     poaDecodeOutput *out;
-    /*
+
     int bufferSize;
     void *transferBuffer;
     int cbCount;
+    /*
+    
     int cbCountErrors;
     int totalEncodedPacketSize;
-    int totalFramesWritten; */
+    int totalFramesWritten;*/
 };
 
 int tryout()
@@ -125,7 +138,7 @@ int tryout()
     LOGERR(err, "output.StartStream");
 #endif
 
-    Pa_Sleep(1000);
+    Pa_Sleep(5000);
 
 #if START_INPUT
     printf("input callback running: %d\n", input.IsCallbackRunning());

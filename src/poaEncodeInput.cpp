@@ -59,7 +59,7 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
         // TODO: move this to trigger with encoded data
         if (userCallbackOpusFrameAvailableCb != NULL)
         {
-            log("userCallbackOpusFrameAvailableCb\n");
+            //log("userCallbackOpusFrameAvailableCb\n");
             userCallbackOpusFrameAvailableCb(userCallbackOpusFrameAvailableData);
         }
     }
@@ -78,7 +78,36 @@ PaError poaEncodeInput::HandleOpenDeviceStream()
 
 void poaEncodeInput::registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailableCb cb, void *userData)
 {
-    log("registerOpusFrameAvailableCb\n");
+    //log("registerOpusFrameAvailableCb\n");
     this->userCallbackOpusFrameAvailableCb = cb;
     this->userCallbackOpusFrameAvailableData = userData;
+}
+
+int poaEncodeInput::readEncodedOpusFrame(/*int &sequence_number,*/ void *buffer, int buffer_size)
+{
+    int readBytes = 0;
+
+    ring_buffer_size_t read_available;
+    read_available = PaUtil_GetRingBufferReadAvailable(&rIntermediateCallbackBuf);
+    if (read_available < inputData.opusMaxFrameSize)
+    {
+        log("readEncodedOpusFrame before full opus frame is available\n");
+        return readBytes;
+    }
+
+    int neededBytes = inputData.opusMaxFrameSize * inputData.sampleSize;
+    if (buffer_size < neededBytes)
+    {
+        log("readEncodedOpusFrame buffer_size(%d) < neededBytes(%d)\n", buffer_size, neededBytes);
+        // cannot copy encoded opus frame, so don't do anything
+        return readBytes;
+    }
+
+    // TODO sequence_number
+
+    ring_buffer_size_t read = PaUtil_ReadRingBuffer(&rIntermediateCallbackBuf, buffer, inputData.opusMaxFrameSize);
+    readBytes = read * inputData.sampleSize;
+    // TODO: change this when having encoded data for now we treat
+    //readOpusFrame = (read == inputData.opusMaxFrameSize);
+    return readBytes;
 }
