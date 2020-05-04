@@ -1,3 +1,4 @@
+#include <string.h>
 #include "poaDecodeOutput.h"
 
 poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name)
