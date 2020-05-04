@@ -1,6 +1,7 @@
 #include "poaEncodeInput.h"
 
-poaEncodeInput::poaEncodeInput(const char *name) : poaBase(name)
+poaEncodeInput::poaEncodeInput(const char *name) : poaBase(name),
+                                                   userCallbackOpusFrameAvailableCb(NULL)
 {
 }
 
@@ -54,6 +55,13 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
     if (read_available >= inputData.opusMaxFrameSize)
     {
         log("_HandlePaStreamCallback: %dx opusMaxFrameSize available\n", read_available / inputData.opusMaxFrameSize);
+
+        // TODO: move this to trigger with encoded data
+        if (userCallbackOpusFrameAvailableCb != NULL)
+        {
+            log("userCallbackOpusFrameAvailableCb\n");
+            userCallbackOpusFrameAvailableCb(userCallbackOpusFrameAvailableData);
+        }
     }
 
     // 2. if we have enough frames to encode, do the encoding into temp data
@@ -66,4 +74,11 @@ PaError poaEncodeInput::HandleOpenDeviceStream()
     PaError err = paNoError;
 
     return err;
+}
+
+void poaEncodeInput::registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailableCb cb, void *userData)
+{
+    log("registerOpusFrameAvailableCb\n");
+    this->userCallbackOpusFrameAvailableCb = cb;
+    this->userCallbackOpusFrameAvailableData = userData;
 }

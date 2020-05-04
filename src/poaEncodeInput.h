@@ -3,9 +3,13 @@
 
 #include "poaBase.h"
 
+typedef void paEncodeInputOpusFrameAvailableCb(void *userData);
+
 class poaEncodeInput : public poaBase
 {
 private:
+    paEncodeInputOpusFrameAvailableCb *userCallbackOpusFrameAvailableCb;
+    void *userCallbackOpusFrameAvailableData;
 
 protected:
     virtual PaError HandleOpenDeviceStream() override;
@@ -16,6 +20,8 @@ public:
      */
     poaEncodeInput(const char *name);
     ~poaEncodeInput();
+
+    void registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailableCb cb, void *userData);
 
     virtual int _HandlePaStreamCallback(const void *inputBuffer,
                                         void *outputBuffer,
