@@ -43,6 +43,7 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     {
         // only log this if encounter buffering issues after WriteEncodedOpusDataFrame has started
         log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames\n", toReadFrames);
+        // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
     }
 
     ring_buffer_size_t read;

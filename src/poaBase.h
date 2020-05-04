@@ -46,12 +46,14 @@ typedef struct poaDeviceData
  * 
  * TODO: where to use sequenceNumber to detect gaps and/or potentially skip playback
  */
+#define poaCallbackTransferDataDataSizeBytes (120 * 2)
 typedef struct poaCallbackTransferData
 {
     int sequenceNumber; //< sequence number if the data
     size_t dataLength;
-    // this uses Flexible Array Member mechanism
-    uint8_t data[];
+    uint8_t data[poaCallbackTransferDataDataSizeBytes]; // user hardcoded size for easier use with ringbuffer mechanism
+                                                        // size is currently based on opusMaxFrameSize(120) and sampleSize(2),
+                                                        // but that is probably too much space since we're actually trying to compress an opusMaxFrameSize
 } poaCallbackTransferData;
 
 class poaBase
@@ -123,12 +125,19 @@ protected:
     void log_pa_stream_info(PaStreamParameters *params);
 
     /* BEGIN data for record callback*/
-    /* Ring buffer (FIFO) for "communicating" from audio callback */
+    /* Ring buffer (FIFO) for "internal" use from audio callback */
     PaUtilRingBuffer rIntermediateCallbackBuf;
     void *rIntermediateCallbackBufData;
     int intermediateRingBufferFrames; // calculated
     int intermediateRingBufferSize;   // calculated
     /* END data for record callback*/
+    /** BEGIN data for communicating with audio callback 
+     */
+    PaUtilRingBuffer rTransferDataBuf;
+    void *rTransferDataBufData;
+    int transferDataRingBufferSize; // calculated
+    int transferDataElements;
+    /* END data for communicating with audio callback */
 
 public:
     /** Construct poaBase.

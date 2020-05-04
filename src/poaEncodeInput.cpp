@@ -66,10 +66,14 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
         {
             //log("userCallbackOpusFrameAvailableCb\n");
 
-            //EncodeOpusFrameFromIntermediate();
+#define DO_ENCODE 0
 
+#if DO_ENCODE
+            EncodeOpusFrameFromIntermediate();
+#else
             // WHILE WORKING ON EncodeOpusFrameFromIntermediate, cannot playback audio
             userCallbackOpusFrameAvailableCb(userCallbackOpusFrameAvailableData);
+#endif
         }
     }
 
@@ -191,5 +195,16 @@ void poaEncodeInput::EncodeOpusFrameFromIntermediate()
             inputData.opusMaxFrameSize,
             (unsigned char *)this->opusEncodeBuffer,
             opusEncodeBufferSize);
+    }
+
+    poaCallbackTransferData tData;
+    memcpy(tData.data, opusEncodeBuffer, encodedPacketSize);
+    tData.dataLength = encodedPacketSize;
+    tData.sequenceNumber = opusSequenceNumber++;
+
+    ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rTransferDataBuf, &tData, 1);
+    if (written != 1)
+    {
+        log("FAILED PaUtil_WriteRingBuffer rTransferDataBuf for sequenceNumber(%d)\n", tData.sequenceNumber);
     }
 }

@@ -12,7 +12,9 @@ poaBase::poaBase(const char *name) : name(name),
                                      stream(NULL),
                                      isCallbackRunning(false),
                                      opusSequenceNumber(0),
-                                     rIntermediateCallbackBufData(NULL)
+                                     rIntermediateCallbackBufData(NULL),
+                                     rTransferDataBufData(NULL),
+                                     transferDataElements(4) // TODO: determine/calculate good value
 {
     Pa_Initialize();
     setupDefaultDeviceData(&inputData);
@@ -300,15 +302,32 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     PaLOGERR(err, "Pa_SetStreamFinishedCallback\n");
 
     log("OpenDeviceStream: intermediateRingBufferFrames(%d), intermediateRingBufferSize(%d) sampleSize(%d)\n", intermediateRingBufferFrames, intermediateRingBufferSize, inputData.sampleSize);
+
+    /*** INTERMEDIATE RINGBUFFER ALLOCATION */
     rIntermediateCallbackBufData = AllocateMemory(intermediateRingBufferSize);
     if (rIntermediateCallbackBufData == NULL)
     {
+        log("rIntermediateCallbackBufData AllocateMemory FAILED\n");
         return paInsufficientMemory;
     }
     err = PaUtil_InitializeRingBuffer(&rIntermediateCallbackBuf, inputData.sampleSize, intermediateRingBufferFrames, rIntermediateCallbackBufData);
     if (err != 0)
     {
-        log("OpenDeviceStream: PaUtil_InitializeRingBuffer failed with %d\n", err);
+        log("OpenDeviceStream: PaUtil_InitializeRingBuffer rIntermediateCallbackBuf failed with %d\n", err);
+    }
+
+    /** TRANSFERDATA RINBUFFER ALLOCATION */
+    transferDataRingBufferSize = sizeof(poaCallbackTransferData) * transferDataElements;
+    rTransferDataBufData = AllocateMemory(transferDataRingBufferSize);
+    if (rTransferDataBufData == NULL)
+    {
+        log("rTransferDataBufData AllocateMemory FAILED\n");
+        return paInsufficientMemory;
+    }
+    err = PaUtil_InitializeRingBuffer(&rTransferDataBuf, sizeof(poaCallbackTransferData), transferDataElements, rTransferDataBufData);
+    if (err != 0)
+    {
+        log("OpenDeviceStream: PaUtil_InitializeRingBuffer rTransferDataBuf failed with %d\n", err);
     }
 
     err = HandleOpenDeviceStream();
