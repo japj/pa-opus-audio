@@ -334,3 +334,8 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     PaLOGERR(err, "HandleOpenDeviceStream\n");
     return err;
 }
+
+void poaBase::setName(const char *name)
+{
+    this->name = name;
+}

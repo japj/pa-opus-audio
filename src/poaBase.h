@@ -143,8 +143,10 @@ public:
     /** Construct poaBase.
      @param @name The name representing this object. This will be used for logging purposes. 
      */
-    poaBase(const char *name);
+    poaBase(const char *name = "default");
     ~poaBase();
+
+    void setName(const char *name);
 
     void log(const char *format, ...);
     void logPaError(PaError err, const char *format, ...);
