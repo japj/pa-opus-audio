@@ -1,8 +1,10 @@
 #include "poaBase.h"
 
-poaBase::poaBase(const char *name) : name(name), stream(NULL), inputDevice(paNoDevice), outputDevice(paNoDevice)
+poaBase::poaBase(const char *name) : name(name), stream(NULL)
 {
     Pa_Initialize();
+    setupDefaultDeviceData(&inputData);
+    setupDefaultDeviceData(&outputData);
 }
 
 poaBase::~poaBase()
@@ -10,14 +12,36 @@ poaBase::~poaBase()
     Pa_Terminate();
 }
 
+void poaBase::setupDefaultDeviceData(poaDeviceData *data)
+{
+    data->streamParams.device = paNoDevice;
+    data->streamParams.channelCount = 1;
+    data->streamParams.sampleFormat = paInt16;
+    data->streamParams.suggestedLatency = 0;
+    data->streamParams.hostApiSpecificStreamInfo = NULL;
+    data->sampleRate = 48000;
+    data->streamFlags = paNoFlag;
+    data->framesPerBuffer = 64;
+}
+
 void poaBase::log(const char *format, ...)
 {
-    char buffer[256];
+    char buffer[512];
     va_list args;
     va_start(args, format);
     vsprintf(buffer, format, args);
     va_end(args);
     printf("[%s]: %s", name.c_str(), buffer);
+}
+
+void poaBase::logPaError(PaError err, const char *format, ...)
+{
+    char buffer[512];
+    va_list args;
+    va_start(args, format);
+    vsprintf(buffer, format, args);
+    va_end(args);
+    log("{%s} %s", Pa_GetErrorText(err), buffer);
 }
 
 PaError poaBase::StartStream()
@@ -68,7 +92,60 @@ PaError poaBase::OpenOutputDeviceStream(PaDeviceIndex outputDevice)
 
 PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice)
 {
+    PaError err = paNoError;
     log("inputDevice(%d), outputDevice(%d)\n", inputDevice, outputDevice);
+
+    PaDeviceIndex requestedInputDevice = (inputDevice == poaDefaultDevice) ? Pa_GetDefaultInputDevice() : inputDevice;
+    PaDeviceIndex requestedOutputDevice = (outputDevice == poaDefaultDevice) ? Pa_GetDefaultOutputDevice() : outputDevice;
+
+    log("requestedInputDevice(%d), requestedOutputDevice(%d)\n", requestedInputDevice, requestedOutputDevice);
+    if (Pa_GetDeviceCount() == 0)
+    {
+        // no devices available at all
+        return paInvalidDevice;
+    }
+    if (requestedInputDevice == paNoDevice && requestedOutputDevice == paNoDevice)
+    {
+        // no input and no output device was selected
+        return paInvalidDevice;
+    }
+    if (requestedInputDevice >= Pa_GetDeviceCount())
+    {
+        // invalid input device
+        return paInvalidDevice;
+    }
+    if (requestedOutputDevice >= Pa_GetDeviceCount())
+    {
+        // invalid output device
+        return paInvalidDevice;
+    }
+
+    PaStreamParameters *inputParams = NULL;
+    PaStreamParameters *outputParams = NULL;
+
+    if (requestedInputDevice != paNoDevice)
+    {
+        // setup requested input device parameters
+        inputData.streamParams.device = requestedInputDevice,
+        inputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(inputData.streamParams.device)->defaultLowInputLatency;
+        inputParams = &inputData.streamParams;
+    }
+    if (requestedOutputDevice != paNoDevice)
+    {
+        // setup requested output device parameters
+        outputData.streamParams.device = requestedOutputDevice;
+        outputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(outputData.streamParams.device)->defaultLowOutputLatency;
+        outputParams = &outputData.streamParams;
+    }
+
+    err = Pa_OpenStream(&this->stream,
+                        inputParams,
+                        outputParams,
+                        this->inputData.sampleRate,
+                        this->inputData.framesPerBuffer,
+                        this->inputData.streamFlags,
+                        this->paStaticCallback, this);
+    PaLOGERR(err, "Pa_OpenStream");
 
     return paNoError;
 }

@@ -7,6 +7,25 @@
 /* our custom way of default device selection */
 #define poaDefaultDevice ((PaDeviceIndex)-2)
 
+#define PaLOGERR(r, call)        \
+    {                            \
+        if (r < 0)               \
+        {                        \
+            logPaError(r, call); \
+        }                        \
+    }
+
+/**
+ * Device Data structure holding all related device settings required for setting up PortAudio stream
+ */
+typedef struct poaDeviceData
+{
+    PaStreamParameters streamParams;
+    double sampleRate;
+    PaStreamFlags streamFlags;
+    unsigned long framesPerBuffer;
+} poaDeviceData;
+
 class poaBase
 {
 private:
@@ -28,10 +47,10 @@ private:
                                 PaStreamCallbackFlags statusFlags,
                                 void *userData);
 
-    /** current selected inputDevice */
-    PaDeviceIndex inputDevice;
-    /** current selected outputDevice */
-    PaDeviceIndex outputDevice;
+    poaDeviceData inputData;
+    poaDeviceData outputData;
+
+    void setupDefaultDeviceData(poaDeviceData *data);
 
     /** Initializes the device for streaming audio input/output
      @param inputDevice specifies the input device to be used, paNoDevice in case no input device should be used
@@ -49,6 +68,7 @@ public:
     ~poaBase();
 
     void log(const char *format, ...);
+    void logPaError(PaError err, const char *format, ...);
 
     /** Initializes the device for streaming audio input
         @param inputDevice specifies the input device to be used, paNoDevice in case no input device should be used
