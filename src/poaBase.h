@@ -20,12 +20,28 @@
  */
 typedef struct poaDeviceData
 {
-    PaStreamParameters streamParams;
+    PaStreamParameters streamParams; // when sampleFormat is changed, perform recalculation
     double sampleRate;
     PaStreamFlags streamFlags;
-    unsigned long framesPerBuffer;
-    int sampleSize; // calculated based on sampleFormat
+    unsigned long callbackMaxFrameSize;
+    int sampleSize; // calculated based on streamParam.sampleFormat
+    int opusMaxFrameSize;
 } poaDeviceData;
+
+/**
+ * generic CallbackTransferData structure to transfer through RingBuffer
+ * Encoding(input) will do callback -> ringbuffer
+ * Decoding(ouput) will do ringbuffer -> callback
+ * 
+ * TODO: where to use sequenceNumber to detect gaps and/or potentially skip playback
+ */
+typedef struct poaCallbackTransferData
+{
+    int sequenceNumber; //< sequence number if the data
+    size_t dataLength;
+    // this uses Flexible Array Member mechanism
+    uint8_t data[];
+} poaCallbackTransferData;
 
 class poaBase
 {
@@ -60,8 +76,11 @@ private:
     */
     static void paStaticStreamFinishedCallback(void *userdata);
 
+    // begin PortAudio callback data
     // TODO: check if mutex on access is needed?
+    // written to by PortAudio callbacks
     bool isCallbackRunning;
+    // end PortAudio callback data
 
     void setupDefaultDeviceData(poaDeviceData *data);
     /* some deviceData is calculated, whenever you change certain settings call this to recalculate
@@ -80,6 +99,17 @@ protected:
     // access from Decode/Output needed
     poaDeviceData inputData;
     poaDeviceData outputData;
+    int opusSequenceNumber;
+
+    // needs to overridden to provide custom setup when opening device stream
+    virtual PaError HandleOpenDeviceStream() = 0;
+
+    int calcSizeUpPow2(unsigned int v);
+    // from PaUtil: AllocateMemmory/FreeMemory for RingBuffers
+    void *AllocateMemory(long size);
+    void FreeMemory(void *block);
+
+    void log_pa_stream_info(PaStreamParameters *params);
 
 public:
     /** Construct poaBase.
@@ -141,19 +171,19 @@ public:
     */
     double GetStreamCpuLoad();
 
-    /* called by low level paStaticStreamCallback , this needs to be public else it can't access it
+    /* called by low level paStaticStreamCallback, this needs to be public else it can't access it
        and it needs to be overridden by actual implementation 
     */
-    virtual int HandlePaStreamCallback(const void *inputBuffer,
-                                       void *outputBuffer,
-                                       unsigned long framesPerBuffer,
-                                       const PaStreamCallbackTimeInfo *timeInfo,
-                                       PaStreamCallbackFlags statusFlags) = 0;
+    virtual int _HandlePaStreamCallback(const void *inputBuffer,
+                                        void *outputBuffer,
+                                        unsigned long framesPerBuffer,
+                                        const PaStreamCallbackTimeInfo *timeInfo,
+                                        PaStreamCallbackFlags statusFlags) = 0;
 
     /** called by low level paStaticStreamFinishedCallback, this needs to be public elase can't access it
      * end it can be overridden
     */
-    virtual void HandlePaStreamFinished();
+    virtual void _HandlePaStreamFinished();
 };
 
 #endif

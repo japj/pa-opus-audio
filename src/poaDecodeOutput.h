@@ -7,6 +7,9 @@ class poaDecodeOutput : public poaBase
 {
 private:
     /* data */
+protected:
+    virtual PaError HandleOpenDeviceStream() override;
+
 public:
     /** Construct poaDecodeOutput.
      @param @name The name representing this object. This will be used for logging purposes. 
@@ -14,11 +17,11 @@ public:
     poaDecodeOutput(const char *name);
     ~poaDecodeOutput();
 
-    virtual int HandlePaStreamCallback(const void *inputBuffer,
-                                       void *outputBuffer,
-                                       unsigned long framesPerBuffer,
-                                       const PaStreamCallbackTimeInfo *timeInfo,
-                                       PaStreamCallbackFlags statusFlags) override;
+    virtual int _HandlePaStreamCallback(const void *inputBuffer,
+                                        void *outputBuffer,
+                                        unsigned long framesPerBuffer,
+                                        const PaStreamCallbackTimeInfo *timeInfo,
+                                        PaStreamCallbackFlags statusFlags) override;
 };
 
 #endif

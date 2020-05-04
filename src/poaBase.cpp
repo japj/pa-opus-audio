@@ -1,7 +1,14 @@
 #include <stdarg.h>
 #include "poaBase.h"
 
-poaBase::poaBase(const char *name) : name(name), stream(NULL), isCallbackRunning(false)
+/* from #include "pa_util.h", which is not exported by default */
+extern "C"
+{
+    void *PaUtil_AllocateMemory(long size);
+    void PaUtil_FreeMemory(void *block);
+}
+
+poaBase::poaBase(const char *name) : name(name), stream(NULL), isCallbackRunning(false), opusSequenceNumber(0)
 {
     Pa_Initialize();
     setupDefaultDeviceData(&inputData);
@@ -26,7 +33,8 @@ void poaBase::setupDefaultDeviceData(poaDeviceData *data)
     data->streamParams.hostApiSpecificStreamInfo = NULL;
     data->sampleRate = 48000;
     data->streamFlags = paNoFlag;
-    data->framesPerBuffer = 64;
+    data->callbackMaxFrameSize = 64;
+    data->opusMaxFrameSize = 120; // 2.5ms@48kHz number of samples per channel in the input signal
 
     // ensure calculated fields are updated
     recalculateDeviceData(data);
@@ -35,6 +43,27 @@ void poaBase::setupDefaultDeviceData(poaDeviceData *data)
 void poaBase::recalculateDeviceData(poaDeviceData *data)
 {
     data->sampleSize = Pa_GetSampleSize(data->streamParams.sampleFormat);
+}
+
+void *poaBase::AllocateMemory(long size)
+{
+    return PaUtil_AllocateMemory(size);
+}
+void poaBase::FreeMemory(void *block)
+{
+    PaUtil_FreeMemory(block);
+}
+
+int poaBase::calcSizeUpPow2(unsigned int v)
+{ // http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
 }
 
 void poaBase::log(const char *format, ...)
@@ -55,6 +84,21 @@ void poaBase::logPaError(PaError err, const char *format, ...)
     vsprintf(buffer, format, args);
     va_end(args);
     log("{%s} %s", Pa_GetErrorText(err), buffer);
+}
+
+void poaBase::log_pa_stream_info(PaStreamParameters *params)
+{
+    const PaDeviceInfo *deviceInfo;
+    deviceInfo = Pa_GetDeviceInfo(params->device);
+    const PaStreamInfo *streamInfo;
+    streamInfo = Pa_GetStreamInfo(stream);
+
+    log("DeviceId:         %d (%s)\n", params->device, deviceInfo->name);
+    log("ChannelCount:     %d\n", params->channelCount);
+    log("SuggestedLatency: %f\n", params->suggestedLatency);
+    log("InputLatency:     %20f (%5.f samples)\n", streamInfo->inputLatency, streamInfo->inputLatency * streamInfo->sampleRate);
+    log("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, streamInfo->outputLatency * streamInfo->sampleRate);
+    log("SampleRate:       %.f\n", streamInfo->sampleRate);
 }
 
 PaError poaBase::StartStream()
@@ -106,7 +150,7 @@ int poaBase::paStaticStreamCallback(const void *inputBuffer,
     }
 
     /* call the actual handler at c++ object side */
-    return data->HandlePaStreamCallback(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
+    return data->_HandlePaStreamCallback(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
 }
 
 void poaBase::paStaticStreamFinishedCallback(void *userData)
@@ -119,14 +163,14 @@ void poaBase::paStaticStreamFinishedCallback(void *userData)
         data->isCallbackRunning = false;
     }
 
-    data->HandlePaStreamFinished();
+    data->_HandlePaStreamFinished();
 }
 
 bool poaBase::IsCallbackRunning()
 {
     return this->isCallbackRunning;
 }
-void poaBase::HandlePaStreamFinished()
+void poaBase::_HandlePaStreamFinished()
 {
     // empty implementation for derived class to actually customize
 }
@@ -143,6 +187,7 @@ PaError poaBase::OpenOutputDeviceStream(PaDeviceIndex outputDevice)
 
 PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outputDevice)
 {
+    // TODO: make error handling robust, in case something fails inbetween start and finish, don't leave half an environment
     PaError err = paNoError;
     log("inputDevice(%d), outputDevice(%d)\n", inputDevice, outputDevice);
 
@@ -170,9 +215,18 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         // invalid output device
         return paInvalidDevice;
     }
+    if (requestedOutputDevice == requestedInputDevice)
+    {
+        // duplex input/output with same divice not support yet
+        return paInvalidDevice;
+    }
 
     PaStreamParameters *inputParams = NULL;
     PaStreamParameters *outputParams = NULL;
+
+    double sampleRate;
+    unsigned long callbackMaxFrameSize;
+    PaStreamFlags streamFlags;
 
     if (requestedInputDevice != paNoDevice)
     {
@@ -180,6 +234,10 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         inputData.streamParams.device = requestedInputDevice,
         inputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(inputData.streamParams.device)->defaultLowInputLatency;
         inputParams = &inputData.streamParams;
+
+        sampleRate = inputData.sampleRate;
+        callbackMaxFrameSize = inputData.callbackMaxFrameSize;
+        streamFlags = inputData.streamFlags;
     }
     if (requestedOutputDevice != paNoDevice)
     {
@@ -187,19 +245,33 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         outputData.streamParams.device = requestedOutputDevice;
         outputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(outputData.streamParams.device)->defaultLowOutputLatency;
         outputParams = &outputData.streamParams;
+
+        sampleRate = outputData.sampleRate;
+        callbackMaxFrameSize = outputData.callbackMaxFrameSize;
+        streamFlags = outputData.streamFlags;
     }
 
     err = Pa_OpenStream(&this->stream,
                         inputParams,
                         outputParams,
-                        this->inputData.sampleRate,
-                        this->inputData.framesPerBuffer,
-                        this->inputData.streamFlags,
+                        sampleRate,
+                        callbackMaxFrameSize,
+                        streamFlags,
                         this->paStaticStreamCallback, this);
     PaLOGERR(err, "Pa_OpenStream\n");
+    if (inputParams)
+    {
+        log_pa_stream_info(inputParams);
+    }
+    if (outputParams)
+    {
+        log_pa_stream_info(outputParams);
+    }
 
     err = Pa_SetStreamFinishedCallback(this->stream, this->paStaticStreamFinishedCallback);
     PaLOGERR(err, "Pa_SetStreamFinishedCallback\n");
 
+    err = HandleOpenDeviceStream();
+    PaLOGERR(err, "HandleOpenDeviceStream\n");
     return err;
 }
