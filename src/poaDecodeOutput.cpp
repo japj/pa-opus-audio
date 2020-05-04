@@ -81,41 +81,6 @@ int poaDecodeOutput::HandleOpenDeviceStream()
 
     return paNoError;
 }
-/*
-bool poaDecodeOutput::writeEncodedOpusFrame( void *data, int data_length)
-{
-    bool writtenOpusFrame = false;
-    if (!isWriteEncodedOpusFrameCalled)
-    {
-        isWriteEncodedOpusFrameCalled = true;
-    }
-
-    if (data_length != outputData.opusMaxFrameSize * outputData.sampleSize)
-    {
-        log("writeEncodedOpusFrame: buffer_size != opusMaxFrameSizeInBytes\n");
-        // atm we no uncoded data, so buffer sizes need to match
-        return writtenOpusFrame;
-    }
-    //int availableFrames = data_length / outputData.sampleSize;
-
-    ring_buffer_size_t dataAvailableFrames = data_length / outputData.sampleSize;
-
-    ring_buffer_size_t write_available;
-    write_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
-
-    ring_buffer_size_t toWrite = dataAvailableFrames > write_available ? write_available : dataAvailableFrames;
-
-    ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, data, toWrite);
-    writtenOpusFrame = (written == dataAvailableFrames);
-    if (!writtenOpusFrame)
-    {
-        log("writeEncodedOpusFrame:FAILED to write full opusFrame, written only (%d) frames\n", written);
-        log("this is usually an indication that wrong device settings are causing low latency to fail (you might hear a 'crackling' audio sound)\n");
-    }
-    return writtenOpusFrame;
-}
-
-*/
 
 bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
 {

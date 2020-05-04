@@ -71,7 +71,6 @@ public:
 
     void registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailableCb cb, void *userData);
 
-    //int readUncompressedFrames(/*int &sequence_number,*/ void *buffer, int buffer_size);
     int encodedOpusFramesAvailable();
     bool readEncodedOpusFrame(poaCallbackTransferData *data);
 
