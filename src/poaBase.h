@@ -1,6 +1,7 @@
 #ifndef PAO_BASE_H
 #define PAO_BASE_H
 
+#include <opus/opus.h>
 #include <string>
 #include "portaudio.h"
 #include "pa_ringbuffer.h"
@@ -14,6 +15,14 @@
         {                        \
             logPaError(r, call); \
         }                        \
+    }
+
+#define OpusLOGERR(r, call)        \
+    {                              \
+        if (r < 0)                 \
+        {                          \
+            logOpusError(r, call); \
+        }                          \
     }
 
 /**
@@ -104,7 +113,7 @@ protected:
     int opusSequenceNumber;
 
     // needs to overridden to provide custom setup when opening device stream
-    virtual PaError HandleOpenDeviceStream() = 0;
+    virtual int HandleOpenDeviceStream() = 0;
 
     int calcSizeUpPow2(unsigned int v);
     // from PaUtil: AllocateMemmory/FreeMemory for RingBuffers
@@ -130,6 +139,7 @@ public:
 
     void log(const char *format, ...);
     void logPaError(PaError err, const char *format, ...);
+    void logOpusError(int err, const char *format, ...);
 
     /* Determine if the stream callback is currently running
      */

@@ -1,7 +1,12 @@
 #include "poaEncodeInput.h"
 
 poaEncodeInput::poaEncodeInput(const char *name) : poaBase(name),
-                                                   userCallbackOpusFrameAvailableCb(NULL)
+                                                   userCallbackOpusFrameAvailableCb(NULL),
+                                                   encoder(NULL),
+                                                   opusEncodeBuffer(NULL),
+                                                   opusEncodeBufferSize(4000),
+                                                   opusIntermediateFrameInputBuffer(NULL),
+                                                   opusIntermediateFrameInputBufferSize(0)
 {
 }
 
@@ -60,6 +65,10 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
         if (userCallbackOpusFrameAvailableCb != NULL)
         {
             //log("userCallbackOpusFrameAvailableCb\n");
+
+            //EncodeOpusFrameFromIntermediate();
+
+            // WHILE WORKING ON EncodeOpusFrameFromIntermediate, cannot playback audio
             userCallbackOpusFrameAvailableCb(userCallbackOpusFrameAvailableData);
         }
     }
@@ -69,10 +78,19 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
     return paContinue;
 }
 
-PaError poaEncodeInput::HandleOpenDeviceStream()
+int poaEncodeInput::HandleOpenDeviceStream()
 {
-    PaError err = paNoError;
+    int err = 0;
 
+    this->encoder = opus_encoder_create(inputData.sampleRate,
+                                        inputData.streamParams.channelCount,
+                                        OPUS_APPLICATION_RESTRICTED_LOWDELAY,
+                                        &err);
+    OpusLOGERR(err, "opus_encoder_create");
+
+    opusEncodeBuffer = AllocateMemory(opusEncodeBufferSize);
+    opusIntermediateFrameInputBufferSize = inputData.opusMaxFrameSize * inputData.streamParams.channelCount * inputData.sampleSize;
+    opusIntermediateFrameInputBuffer = AllocateMemory(opusIntermediateFrameInputBufferSize);
     return err;
 }
 
@@ -110,4 +128,68 @@ int poaEncodeInput::readEncodedOpusFrame(/*int &sequence_number,*/ void *buffer,
     // TODO: change this when having encoded data for now we treat
     //readOpusFrame = (read == inputData.opusMaxFrameSize);
     return readBytes;
+}
+
+int poaEncodeInput::opusEncodeFloat(
+    const float *pcm,
+    int frame_size,
+    unsigned char *data,
+    opus_int32 max_data_bytes)
+{
+    // TODO: The length of the encoded packet (in bytes) on success or a
+    //          negative error code (see @ref opus_errorcodes) on failure.
+    return opus_encode_float(this->encoder,
+                             pcm,
+                             frame_size,
+                             data,
+                             max_data_bytes);
+}
+
+int poaEncodeInput::OpusEncode(
+    const opus_int16 *pcm,
+    int frame_size,
+    unsigned char *data,
+    opus_int32 max_data_bytes)
+{
+    // TODO: The length of the encoded packet (in bytes) on success or a
+    //          negative error code (see @ref opus_errorcodes) on failure.
+    return opus_encode(this->encoder,
+                       pcm,
+                       frame_size,
+                       data,
+                       max_data_bytes);
+}
+
+void poaEncodeInput::EncodeOpusFrameFromIntermediate()
+{
+    int encodedPacketSize = 0;
+    memset(opusIntermediateFrameInputBuffer, 0, opusIntermediateFrameInputBufferSize);
+
+    // read data from intermediate buffer so we can encode it
+    ring_buffer_size_t readFrames;
+
+    readFrames = PaUtil_ReadRingBuffer(&rIntermediateCallbackBuf, opusIntermediateFrameInputBuffer, inputData.opusMaxFrameSize);
+    if (readFrames != inputData.opusMaxFrameSize)
+    {
+        log("EncodeOpusFrameFromIntermediate could not read full opus frame, only (%d) frames\n", readFrames);
+    }
+
+    if (inputData.streamParams.sampleFormat == paFloat32)
+    {
+        // encode audio
+        encodedPacketSize = this->opusEncodeFloat(
+            (float *)opusIntermediateFrameInputBuffer, //this->opusEncodeBuffer,
+            inputData.opusMaxFrameSize,
+            (unsigned char *)this->opusEncodeBuffer,
+            opusEncodeBufferSize);
+    }
+    else
+    {
+        // encode audio
+        encodedPacketSize = this->OpusEncode(
+            (opus_int16 *)opusIntermediateFrameInputBuffer, //this->opusEncodeBuffer,
+            inputData.opusMaxFrameSize,
+            (unsigned char *)this->opusEncodeBuffer,
+            opusEncodeBufferSize);
+    }
 }

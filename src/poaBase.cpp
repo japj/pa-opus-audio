@@ -90,6 +90,16 @@ void poaBase::logPaError(PaError err, const char *format, ...)
     log("{%s} %s", Pa_GetErrorText(err), buffer);
 }
 
+void poaBase::logOpusError(int err, const char *format, ...)
+{
+    char buffer[512];
+    va_list args;
+    va_start(args, format);
+    vsprintf(buffer, format, args);
+    va_end(args);
+    log("{%s} %s", opus_strerror(err), buffer);
+}
+
 void poaBase::log_pa_stream_info(PaStreamParameters *params)
 {
     const PaDeviceInfo *deviceInfo;
