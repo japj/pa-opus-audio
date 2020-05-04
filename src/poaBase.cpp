@@ -14,7 +14,7 @@ poaBase::poaBase(const char *name) : name(name),
                                      opusSequenceNumber(0),
                                      rIntermediateCallbackBufData(NULL),
                                      rTransferDataBufData(NULL),
-                                     transferDataElements(4) // TODO: determine/calculate good value
+                                     transferDataElements(8) // TODO: determine/calculate good value
 {
     Pa_Initialize();
     setupDefaultDeviceData(&inputData);
