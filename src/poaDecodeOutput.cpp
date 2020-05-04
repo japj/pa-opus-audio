@@ -120,15 +120,17 @@ bool poaDecodeOutput::writeEncodedOpusFrame( void *data, int data_length)
 bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
 {
     bool writtenOpusFrame = false;
-    if (!isWriteEncodedOpusFrameCalled)
-    {
-        isWriteEncodedOpusFrameCalled = true;
-    }
 
     ring_buffer_size_t write = PaUtil_WriteRingBuffer(&rTransferDataBuf, data, 1);
     if (write != 1)
     {
         log("poaDecodeOutput::writeEncodedOpusFrame failed to write data to rTransferDataBuf for sequence_number(%d)\n", data->sequenceNumber);
+    }
+
+    if (!isWriteEncodedOpusFrameCalled)
+    {
+        opusSequenceNumber = data->sequenceNumber;
+        isWriteEncodedOpusFrameCalled = true;
     }
     return write == 1;
 }
@@ -169,7 +171,6 @@ int poaDecodeOutput::OpusDecode(
 
 void poaDecodeOutput::DecodeOpusFrameFromTransfer()
 {
-    log("DecodeOpusFrameFromTransfer\n");
     int dec = 0; // TODO determine value
 
     // read data from tranferBuffer and decode it
@@ -181,11 +182,15 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
     ring_buffer_size_t read = PaUtil_ReadRingBuffer(&rTransferDataBuf, &tData, 1);
     if (read != 1)
     {
-        log("FAILED PaUtil_ReadRingBuffer rTransferDataBuf at sequence_number\n", opusSequenceNumber);
+        // this might not be an error (yet), callback does not check if encoded data is available before callig
+
+        //log("No encoded data available yet PaUtil_ReadRingBuffer rTransferDataBuf at sequence_number (%d)\n", opusSequenceNumber);
 
         // TODO: decode with dec 1??
         return;
     }
+
+    //log("DecodeOpusFrameFromTransfer opusSequenceNumber (%d) encoded.sequenceNumber (%d)\n", opusSequenceNumber, tData.sequenceNumber);
 
     if (outputData.streamParams.sampleFormat == paFloat32)
     {
@@ -214,6 +219,7 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
     ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, opusDecodeBuffer, decodedFrameCount);
     if (written != decodedFrameCount)
     {
-        log("FAILED PaUtil_WriteRingBuffer rIntermediateCallbackBuf for sequenceNumber(%d)\n", tData.sequenceNumber);
+        log("FAILED PaUtil_WriteRingBuffer rIntermediateCallbackBuf at expected sequenceNumber(%d)\n", opusSequenceNumber + 1);
     }
+    opusSequenceNumber++;
 }

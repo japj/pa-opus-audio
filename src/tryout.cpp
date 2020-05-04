@@ -57,7 +57,7 @@ public:
             printf("HandleOneOpusFrameAvailable could not readEncodedOpusFrame??\n");
             return;
         }
-        printf("HandleOneOpusFrameAvailable sequenceNumber(%d) dataLength(%ld) \n", data.sequenceNumber, data.dataLength);
+        //printf("HandleOneOpusFrameAvailable sequenceNumber(%d) dataLength(%ld) \n", data.sequenceNumber, data.dataLength);
 
         bool written = out->writeEncodedOpusFrame(&data);
         if (!written)
