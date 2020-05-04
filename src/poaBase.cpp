@@ -8,7 +8,11 @@ extern "C"
     void PaUtil_FreeMemory(void *block);
 }
 
-poaBase::poaBase(const char *name) : name(name), stream(NULL), isCallbackRunning(false), opusSequenceNumber(0)
+poaBase::poaBase(const char *name) : name(name),
+                                     stream(NULL),
+                                     isCallbackRunning(false),
+                                     opusSequenceNumber(0),
+                                     rIntermediateCallbackBufData(NULL)
 {
     Pa_Initialize();
     setupDefaultDeviceData(&inputData);
@@ -270,6 +274,22 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
 
     err = Pa_SetStreamFinishedCallback(this->stream, this->paStaticStreamFinishedCallback);
     PaLOGERR(err, "Pa_SetStreamFinishedCallback\n");
+
+    int intermediateRingBufferFrames = calcSizeUpPow2(inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
+    // TODO: remove channelCount after encoding data, this is just needed to have enough space for stereo sound?
+    int intermediateRingBufferSize = intermediateRingBufferFrames * inputData.sampleSize * inputData.streamParams.channelCount;
+
+    log("OpenDeviceStream: intermediateRingBufferFrames(%d), intermediateRingBufferSize(%d) sampleSize(%d)\n", intermediateRingBufferFrames, intermediateRingBufferSize, inputData.sampleSize);
+    rIntermediateCallbackBufData = AllocateMemory(intermediateRingBufferSize);
+    if (rIntermediateCallbackBufData == NULL)
+    {
+        return paInsufficientMemory;
+    }
+    err = PaUtil_InitializeRingBuffer(&rIntermediateCallbackBuf, inputData.sampleSize, intermediateRingBufferFrames, rIntermediateCallbackBufData);
+    if (err != 0)
+    {
+        log("OpenDeviceStream: PaUtil_InitializeRingBuffer failed with %d\n", err);
+    }
 
     err = HandleOpenDeviceStream();
     PaLOGERR(err, "HandleOpenDeviceStream\n");

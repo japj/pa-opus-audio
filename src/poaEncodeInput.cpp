@@ -1,6 +1,6 @@
 #include "poaEncodeInput.h"
 
-poaEncodeInput::poaEncodeInput(const char *name) : poaBase(name), rIntermediateCallbackBufData(NULL)
+poaEncodeInput::poaEncodeInput(const char *name) : poaBase(name)
 {
 }
 
@@ -34,11 +34,15 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
     ring_buffer_size_t written;
     ring_buffer_size_t write_available;
     write_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
-    if (framesPerBuffer > write_available)
+
+    unsigned long toWriteFrames = framesPerBuffer > write_available ? write_available : framesPerBuffer;
+    // TODO: put write_available amount of frames in the buffer instead of fully skipping
+    if (toWriteFrames != framesPerBuffer)
     {
-        log("_HandlePaStreamCallback SKIPPING more framesPerBuffer(%ld) than available(%d)\n", framesPerBuffer, write_available);
-        return paContinue;
+        log("_HandlePaStreamCallback SKIPPING recording, no room for (%d) intermediate frames\n", framesPerBuffer - write_available);
     }
+
+    // 1. store new frames in intermediate ringbuffer
     written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, inputBuffer, framesPerBuffer);
     if (written != framesPerBuffer)
     {
@@ -52,29 +56,14 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
         log("_HandlePaStreamCallback: %dx opusMaxFrameSize available\n", read_available / inputData.opusMaxFrameSize);
     }
 
+    // 2. if we have enough frames to encode, do the encoding into temp data
+
     return paContinue;
 }
 
 PaError poaEncodeInput::HandleOpenDeviceStream()
 {
     PaError err = paNoError;
-    // TODO: intermediateRingBuffer is probably common
-
-    int intermediateRingBufferFrames = calcSizeUpPow2(inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
-    // TODO: remove channelCount after encoding data, this is just needed to have enough space for stereo sound?
-    int intermediateRingBufferSize = intermediateRingBufferFrames * inputData.sampleSize * inputData.streamParams.channelCount;
-
-    log("intermediateRingBufferFrames(%d), intermediateRingBufferSize(%d) sampleSize(%d)\n", intermediateRingBufferFrames, intermediateRingBufferSize, inputData.sampleSize);
-    rIntermediateCallbackBufData = AllocateMemory(intermediateRingBufferSize);
-    if (rIntermediateCallbackBufData == NULL)
-    {
-        return paInsufficientMemory;
-    }
-    err = PaUtil_InitializeRingBuffer(&rIntermediateCallbackBuf, inputData.sampleSize, intermediateRingBufferFrames, rIntermediateCallbackBufData);
-    if (err != 0)
-    {
-        log("HandleOpenDeviceStream: PaUtil_InitializeRingBuffer failed with %d\n", err);
-    }
 
     return err;
 }

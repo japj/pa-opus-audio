@@ -2,16 +2,10 @@
 #define POA_ENCODE_INPUT_H
 
 #include "poaBase.h"
-#include "pa_ringbuffer.h"
 
 class poaEncodeInput : public poaBase
 {
 private:
-    /* BEGIN data for record callback*/
-    /* Ring buffer (FIFO) for "communicating" from audio callback */
-    PaUtilRingBuffer rIntermediateCallbackBuf;
-    void *rIntermediateCallbackBufData;
-    /* END data for record callback*/
 
 protected:
     virtual PaError HandleOpenDeviceStream() override;

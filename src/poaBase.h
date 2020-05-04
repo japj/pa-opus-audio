@@ -3,6 +3,7 @@
 
 #include <string>
 #include "portaudio.h"
+#include "pa_ringbuffer.h"
 
 /* our custom way of default device selection */
 #define poaDefaultDevice ((PaDeviceIndex)-2)
@@ -110,6 +111,12 @@ protected:
     void FreeMemory(void *block);
 
     void log_pa_stream_info(PaStreamParameters *params);
+
+    /* BEGIN data for record callback*/
+    /* Ring buffer (FIFO) for "communicating" from audio callback */
+    PaUtilRingBuffer rIntermediateCallbackBuf;
+    void *rIntermediateCallbackBufData;
+    /* END data for record callback*/
 
 public:
     /** Construct poaBase.
