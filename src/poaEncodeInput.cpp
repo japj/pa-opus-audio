@@ -66,14 +66,9 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
         {
             //log("userCallbackOpusFrameAvailableCb\n");
 
-#define DO_ENCODE 0
-
-#if DO_ENCODE
             EncodeOpusFrameFromIntermediate();
-#else
-            // WHILE WORKING ON EncodeOpusFrameFromIntermediate, cannot playback audio
+
             userCallbackOpusFrameAvailableCb(userCallbackOpusFrameAvailableData);
-#endif
         }
     }
 
@@ -104,8 +99,8 @@ void poaEncodeInput::registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailabl
     this->userCallbackOpusFrameAvailableCb = cb;
     this->userCallbackOpusFrameAvailableData = userData;
 }
-
-int poaEncodeInput::readEncodedOpusFrame(/*int &sequence_number,*/ void *buffer, int buffer_size)
+/*
+int poaEncodeInput::readUncompressedFrames(int &sequence_number, void *buffer, int buffer_size)
 {
     int readBytes = 0;
 
@@ -133,6 +128,7 @@ int poaEncodeInput::readEncodedOpusFrame(/*int &sequence_number,*/ void *buffer,
     //readOpusFrame = (read == inputData.opusMaxFrameSize);
     return readBytes;
 }
+*/
 
 int poaEncodeInput::opusEncodeFloat(
     const float *pcm,
@@ -167,6 +163,7 @@ int poaEncodeInput::OpusEncode(
 void poaEncodeInput::EncodeOpusFrameFromIntermediate()
 {
     int encodedPacketSize = 0;
+    // clear memoty first to ensure we don't have any trash in case if partial frames
     memset(opusIntermediateFrameInputBuffer, 0, opusIntermediateFrameInputBufferSize);
 
     // read data from intermediate buffer so we can encode it
@@ -207,4 +204,22 @@ void poaEncodeInput::EncodeOpusFrameFromIntermediate()
     {
         log("FAILED PaUtil_WriteRingBuffer rTransferDataBuf for sequenceNumber(%d)\n", tData.sequenceNumber);
     }
+}
+
+int poaEncodeInput::encodedOpusFramesAvailable()
+{
+    return PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf);
+}
+
+bool poaEncodeInput::readEncodedOpusFrame(poaCallbackTransferData *data)
+{
+    ring_buffer_size_t read = PaUtil_ReadRingBuffer(&rTransferDataBuf, data, 1);
+    if (read != 1)
+    {
+        log("poaEncodeInput::readEncodedOpusFrame failed to read data from rTransferDataBuf\n");
+        // reset any data to indicate error
+        memset(data, 0, sizeof(poaCallbackTransferData));
+    }
+
+    return read == 1;
 }

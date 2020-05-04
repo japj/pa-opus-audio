@@ -43,6 +43,29 @@ public:
         //printf("\nHandleOpusDataTransferCallback::HandleOneOpusFrameAvailable\n");
         cbCount++;
 
+        int available = in->encodedOpusFramesAvailable();
+        if (available < 1)
+        {
+            printf("HandleOneOpusFrameAvailable got trigger, but no frame available??? \n");
+            return;
+        }
+
+        poaCallbackTransferData data;
+        bool read = in->readEncodedOpusFrame(&data);
+        if (!read)
+        {
+            printf("HandleOneOpusFrameAvailable could not readEncodedOpusFrame??\n");
+            return;
+        }
+        printf("HandleOneOpusFrameAvailable sequenceNumber(%d) dataLength(%ld) \n", data.sequenceNumber, data.dataLength);
+
+        bool written = out->writeEncodedOpusFrame(&data);
+        if (!written)
+        {
+            printf("HandleOneOpusFrameAvailable could not writeEncodedOpusFrame??\n");
+        }
+        /*
+
         int read = in->readEncodedOpusFrame(transferBuffer, bufferSize);
         if (read > 0)
         {
@@ -60,7 +83,7 @@ public:
             printf("HandleOneOpusFrameAvailable cbCount: %5d, readBytes: %5d\n",
                    cbCount, read);
         }
-
+*/
         /*
 
         ring_buffer_size_t framesWritten = 0;

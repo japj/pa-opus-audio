@@ -10,6 +10,7 @@ class poaEncodeInput : public poaBase
 private:
     paEncodeInputOpusFrameAvailableCb *userCallbackOpusFrameAvailableCb;
     void *userCallbackOpusFrameAvailableData;
+
     OpusEncoder *encoder;
     void *opusEncodeBuffer;
     size_t opusEncodeBufferSize; // `max_packet` is the maximum number of bytes that can be written in the packet(4000 bytes is recommended)
@@ -70,13 +71,16 @@ public:
 
     void registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailableCb cb, void *userData);
 
-    int readEncodedOpusFrame(/*int &sequence_number,*/ void *buffer, int buffer_size);
+    //int readUncompressedFrames(/*int &sequence_number,*/ void *buffer, int buffer_size);
+    int encodedOpusFramesAvailable();
+    bool readEncodedOpusFrame(poaCallbackTransferData *data);
 
-    virtual int _HandlePaStreamCallback(const void *inputBuffer,
-                                        void *outputBuffer,
-                                        unsigned long framesPerBuffer,
-                                        const PaStreamCallbackTimeInfo *timeInfo,
-                                        PaStreamCallbackFlags statusFlags) override;
+    virtual int
+    _HandlePaStreamCallback(const void *inputBuffer,
+                            void *outputBuffer,
+                            unsigned long framesPerBuffer,
+                            const PaStreamCallbackTimeInfo *timeInfo,
+                            PaStreamCallbackFlags statusFlags) override;
 };
 
 #endif

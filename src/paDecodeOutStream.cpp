@@ -105,7 +105,7 @@ int paDecodeOutStream::paOutputCallback(
     {
         if (firstDecodeCalled)
         {
-            printf("paOutputCallback: partial read(%ld), needed(%ld)\n", actualFramesRead, framesPerBuffer);
+            printf("paOutputCallback: partial read(%d), needed(%ld)\n", actualFramesRead, framesPerBuffer);
         }
     }
 
@@ -322,7 +322,7 @@ int paDecodeOutStream::DecodeDataIntoPlayback(void *data, opus_int32 len, int de
     }
     if (framesWritten != toWriteFrameCount)
     {
-        printf("DecodeDataIntoPlayback: writeRingBuffer tried(%d) actual(%ld)\n", toWriteFrameCount, framesWritten);
+        printf("DecodeDataIntoPlayback: writeRingBuffer tried(%d) actual(%d)\n", toWriteFrameCount, framesWritten);
     }
     if (framesWritten != decodedFrameCount)
     {
