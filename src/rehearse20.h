@@ -14,6 +14,7 @@ public:
     static Napi::Function GetClass(Napi::Env);
 
     //PortAudio
+    Napi::Value Tryout(const Napi::CallbackInfo &info);
     Napi::Value Detect(const Napi::CallbackInfo &info);
     Napi::Value Protoring(const Napi::CallbackInfo &info);
 

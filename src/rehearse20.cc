@@ -1,6 +1,7 @@
 #include "rehearse20.h"
 #include "DecodeWorker.h"
 #include "EncodeWorker.h"
+#include "tryout.h"
 
 using namespace Napi;
 
@@ -256,10 +257,20 @@ Napi::Value Rehearse20::InputStopStream(const Napi::CallbackInfo &info)
     return Napi::Number::New(env, err);
 }
 
+Napi::Value Rehearse20::Tryout(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    int result = tryout();
+
+    return Napi::Number::New(env, result);
+}
+
 Napi::Function Rehearse20::GetClass(Napi::Env env)
 {
     return DefineClass(env, "Rehearse20", {
                                               Rehearse20::InstanceMethod("greet", &Rehearse20::Greet),
+                                              Rehearse20::InstanceMethod("tryout", &Rehearse20::Tryout),
                                               Rehearse20::InstanceMethod("detect", &Rehearse20::Detect),
                                               Rehearse20::InstanceMethod("protoring", &Rehearse20::Protoring),
                                               Rehearse20::InstanceMethod("OutputInitAndStartStream", &Rehearse20::OutputInitAndStartStream),
