@@ -54,7 +54,7 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
     read_available = PaUtil_GetRingBufferReadAvailable(&rIntermediateCallbackBuf);
     if (read_available >= inputData.opusMaxFrameSize)
     {
-        log("_HandlePaStreamCallback: %dx opusMaxFrameSize available\n", read_available / inputData.opusMaxFrameSize);
+        //log("_HandlePaStreamCallback: %dx opusMaxFrameSize available\n", read_available / inputData.opusMaxFrameSize);
 
         // TODO: move this to trigger with encoded data
         if (userCallbackOpusFrameAvailableCb != NULL)

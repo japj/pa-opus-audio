@@ -1,7 +1,8 @@
 #include <string.h>
 #include "poaDecodeOutput.h"
 
-poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name)
+poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
+                                                     isWriteEncodedOpusFrameCalled(false)
 {
     //is this needed? outputData.streamParams.channelCount = 2;
 }
@@ -38,8 +39,9 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     ring_buffer_size_t read_available;
     read_available = PaUtil_GetRingBufferReadAvailable(&rIntermediateCallbackBuf);
     unsigned long toReadFrames = framesPerBuffer > read_available ? read_available : framesPerBuffer;
-    if (toReadFrames != framesPerBuffer)
+    if (toReadFrames != framesPerBuffer && isWriteEncodedOpusFrameCalled)
     {
+        // only log this if encounter buffering issues after WriteEncodedOpusDataFrame has started
         log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames\n", toReadFrames);
     }
 
@@ -62,6 +64,10 @@ PaError poaDecodeOutput::HandleOpenDeviceStream()
 bool poaDecodeOutput::writeEncodedOpusFrame(/*int &sequence_number, */ void *data, int data_length)
 {
     bool writtenOpusFrame = false;
+    if (!isWriteEncodedOpusFrameCalled)
+    {
+        isWriteEncodedOpusFrameCalled = true;
+    }
 
     if (data_length != outputData.opusMaxFrameSize * outputData.sampleSize)
     {
@@ -83,7 +89,7 @@ bool poaDecodeOutput::writeEncodedOpusFrame(/*int &sequence_number, */ void *dat
     if (!writtenOpusFrame)
     {
         log("writeEncodedOpusFrame:FAILED to write full opusFrame, written only (%d) frames\n", written);
-        log("this is usually an indication that wrong device settings are causing low latency to fail (you might hear a 'crackling' audio sound\n");
+        log("this is usually an indication that wrong device settings are causing low latency to fail (you might hear a 'crackling' audio sound)\n");
     }
     return writtenOpusFrame;
 }

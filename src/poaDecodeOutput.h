@@ -7,6 +7,8 @@ class poaDecodeOutput : public poaBase
 {
 private:
     /* data */
+    bool isWriteEncodedOpusFrameCalled;
+
 protected:
     virtual PaError HandleOpenDeviceStream() override;
 
