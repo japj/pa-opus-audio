@@ -8,8 +8,17 @@ class poaDecodeOutput : public poaBase
 private:
     /* data */
 public:
+    /** Construct poaDecodeOutput.
+     @param @name The name representing this object. This will be used for logging purposes. 
+     */
     poaDecodeOutput(const char *name);
     ~poaDecodeOutput();
+
+    virtual int HandlePaCallback(const void *inputBuffer,
+                                 void *outputBuffer,
+                                 unsigned long framesPerBuffer,
+                                 const PaStreamCallbackTimeInfo *timeInfo,
+                                 PaStreamCallbackFlags statusFlags);
 };
 
 #endif

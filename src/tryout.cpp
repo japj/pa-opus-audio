@@ -9,5 +9,8 @@ int tryout()
     input.log("testing %d\n", 1);
     output.log("testing %s\n", "foo");
 
+    input.OpenInputDeviceStream();
+    output.OpenOutputDeviceStream();
+
     return 0;
 }
