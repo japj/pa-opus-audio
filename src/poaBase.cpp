@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include "poaBase.h"
 
 poaBase::poaBase(const char *name) : name(name), stream(NULL), isCallbackRunning(false)
