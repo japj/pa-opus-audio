@@ -270,14 +270,19 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         // this needs tuning or can it be calculated?
         // TODO: remove channelCount after encoding data, this is just needed to have enough space for stereo sound?
 
-        intermediateRingBufferFrames = calcSizeUpPow2(2 * inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
+        //intermediateRingBufferFrames = calcSizeUpPow2(2 * inputData.opusMaxFrameSize);
+        intermediateRingBufferFrames = calcSizeUpPow2(1 * inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
         intermediateRingBufferSize = intermediateRingBufferFrames * inputData.sampleSize * inputData.streamParams.channelCount;
     }
     if (outputParams)
     {
         log_pa_stream_info(outputParams);
 
-        intermediateRingBufferFrames = calcSizeUpPow2(2 * outputData.opusMaxFrameSize + outputData.callbackMaxFrameSize);
+        // NOTE: any "crackling sound" can be recognized in the
+        // logging by [output]: writeEncodedOpusFrame:FAILED to write full opusFrame, written only (112) frames
+
+        //intermediateRingBufferFrames = calcSizeUpPow2(2 * outputData.opusMaxFrameSize);
+        intermediateRingBufferFrames = calcSizeUpPow2(1 * outputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
         intermediateRingBufferSize = intermediateRingBufferFrames * outputData.sampleSize * outputData.streamParams.channelCount;
     }
 

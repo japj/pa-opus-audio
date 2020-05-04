@@ -83,6 +83,7 @@ bool poaDecodeOutput::writeEncodedOpusFrame(/*int &sequence_number, */ void *dat
     if (!writtenOpusFrame)
     {
         log("writeEncodedOpusFrame:FAILED to write full opusFrame, written only (%d) frames\n", written);
+        log("this is usually an indication that wrong device settings are causing low latency to fail (you might hear a 'crackling' audio sound\n");
     }
     return writtenOpusFrame;
 }
