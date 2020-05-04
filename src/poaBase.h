@@ -24,6 +24,7 @@ typedef struct poaDeviceData
     double sampleRate;
     PaStreamFlags streamFlags;
     unsigned long framesPerBuffer;
+    int sampleSize; // calculated based on sampleFormat
 } poaDeviceData;
 
 class poaBase
@@ -40,17 +41,32 @@ private:
     ** It may called at interrupt level on some machines so don't do anything
     ** that could mess up the system like calling malloc() or free().
     */
-    static int paStaticCallback(const void *inputBuffer,
-                                void *outputBuffer,
-                                unsigned long framesPerBuffer,
-                                const PaStreamCallbackTimeInfo *timeInfo,
-                                PaStreamCallbackFlags statusFlags,
-                                void *userData);
+    static int paStaticStreamCallback(const void *inputBuffer,
+                                      void *outputBuffer,
+                                      unsigned long framesPerBuffer,
+                                      const PaStreamCallbackTimeInfo *timeInfo,
+                                      PaStreamCallbackFlags statusFlags,
+                                      void *userData);
 
-    poaDeviceData inputData;
-    poaDeviceData outputData;
+    /** Functions of type PaStreamFinishedCallback are implemented by PortAudio 
+     clients. They can be registered with a stream using the Pa_SetStreamFinishedCallback
+    function. Once registered they are called when the stream becomes inactive
+    (ie once a call to Pa_StopStream() will not block).
+    A stream will become inactive after the stream callback returns non-zero,
+    or when Pa_StopStream or Pa_AbortStream is called. For a stream providing audio
+    output, if the stream callback returns paComplete, or Pa_StopStream() is called,
+    the stream finished callback will not be called until all generated sample data
+    has been played.
+    */
+    static void paStaticStreamFinishedCallback(void *userdata);
+
+    // TODO: check if mutex on access is needed?
+    bool isCallbackRunning;
 
     void setupDefaultDeviceData(poaDeviceData *data);
+    /* some deviceData is calculated, whenever you change certain settings call this to recalculate
+     */
+    void recalculateDeviceData(poaDeviceData *data);
 
     /** Initializes the device for streaming audio input/output
      @param inputDevice specifies the input device to be used, paNoDevice in case no input device should be used
@@ -59,6 +75,11 @@ private:
                   poaDefaultDevice in case the system default input device should be used
      */
     PaError OpenDeviceStream(PaDeviceIndex inputDevice = paNoDevice, PaDeviceIndex outputDevice = paNoDevice);
+
+protected:
+    // access from Decode/Output needed
+    poaDeviceData inputData;
+    poaDeviceData outputData;
 
 public:
     /** Construct poaBase.
@@ -69,6 +90,10 @@ public:
 
     void log(const char *format, ...);
     void logPaError(PaError err, const char *format, ...);
+
+    /* Determine if the stream callback is currently running
+     */
+    bool IsCallbackRunning();
 
     /** Initializes the device for streaming audio input
         @param inputDevice specifies the input device to be used, paNoDevice in case no input device should be used
@@ -104,14 +129,19 @@ public:
     */
     PaError CloseStream();
 
-    /* called by low level callback , this needs to be public else it can't access it
+    /* called by low level paStaticStreamCallback , this needs to be public else it can't access it
        and it needs to be overridden by actual implementation 
     */
-    virtual int HandlePaCallback(const void *inputBuffer,
-                                 void *outputBuffer,
-                                 unsigned long framesPerBuffer,
-                                 const PaStreamCallbackTimeInfo *timeInfo,
-                                 PaStreamCallbackFlags statusFlags) = 0;
+    virtual int HandlePaStreamCallback(const void *inputBuffer,
+                                       void *outputBuffer,
+                                       unsigned long framesPerBuffer,
+                                       const PaStreamCallbackTimeInfo *timeInfo,
+                                       PaStreamCallbackFlags statusFlags) = 0;
+
+    /** called by low level paStaticStreamFinishedCallback, this needs to be public elase can't access it
+     * end it can be overridden
+    */
+    virtual void HandlePaStreamFinished();
 };
 
 #endif

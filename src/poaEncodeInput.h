@@ -14,11 +14,11 @@ public:
     poaEncodeInput(const char *name);
     ~poaEncodeInput();
 
-    virtual int HandlePaCallback(const void *inputBuffer,
-                                 void *outputBuffer,
-                                 unsigned long framesPerBuffer,
-                                 const PaStreamCallbackTimeInfo *timeInfo,
-                                 PaStreamCallbackFlags statusFlags);
+    virtual int HandlePaStreamCallback(const void *inputBuffer,
+                                       void *outputBuffer,
+                                       unsigned long framesPerBuffer,
+                                       const PaStreamCallbackTimeInfo *timeInfo,
+                                       PaStreamCallbackFlags statusFlags) override;
 };
 
 #endif

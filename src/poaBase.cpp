@@ -1,6 +1,6 @@
 #include "poaBase.h"
 
-poaBase::poaBase(const char *name) : name(name), stream(NULL)
+poaBase::poaBase(const char *name) : name(name), stream(NULL), isCallbackRunning(false)
 {
     Pa_Initialize();
     setupDefaultDeviceData(&inputData);
@@ -22,6 +22,14 @@ void poaBase::setupDefaultDeviceData(poaDeviceData *data)
     data->sampleRate = 48000;
     data->streamFlags = paNoFlag;
     data->framesPerBuffer = 64;
+
+    // ensure calculated fields are updated
+    recalculateDeviceData(data);
+}
+
+void poaBase::recalculateDeviceData(poaDeviceData *data)
+{
+    data->sampleSize = Pa_GetSampleSize(data->streamParams.sampleFormat);
 }
 
 void poaBase::log(const char *format, ...)
@@ -67,17 +75,45 @@ PaError poaBase::CloseStream()
     return err;
 }
 
-int poaBase::paStaticCallback(const void *inputBuffer,
-                              void *outputBuffer,
-                              unsigned long framesPerBuffer,
-                              const PaStreamCallbackTimeInfo *timeInfo,
-                              PaStreamCallbackFlags statusFlags,
-                              void *userData)
+int poaBase::paStaticStreamCallback(const void *inputBuffer,
+                                    void *outputBuffer,
+                                    unsigned long framesPerBuffer,
+                                    const PaStreamCallbackTimeInfo *timeInfo,
+                                    PaStreamCallbackFlags statusFlags,
+                                    void *userData)
 {
     poaBase *data = (poaBase *)userData;
 
+    if (!data->isCallbackRunning)
+    {
+        // ensure we know when the callback is actually running
+        data->isCallbackRunning = true;
+    }
+
     /* call the actual handler at c++ object side */
-    return data->HandlePaCallback(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
+    return data->HandlePaStreamCallback(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
+}
+
+void poaBase::paStaticStreamFinishedCallback(void *userData)
+{
+    poaBase *data = (poaBase *)userData;
+
+    if (data->isCallbackRunning)
+    {
+        // ensure we know when the callback is actually stopped
+        data->isCallbackRunning = false;
+    }
+
+    data->HandlePaStreamFinished();
+}
+
+bool poaBase::IsCallbackRunning()
+{
+    return this->isCallbackRunning;
+}
+void poaBase::HandlePaStreamFinished()
+{
+    // empty implementation for derived class to actually customize
 }
 
 PaError poaBase::OpenInputDeviceStream(PaDeviceIndex inputDevice)
@@ -144,8 +180,11 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
                         this->inputData.sampleRate,
                         this->inputData.framesPerBuffer,
                         this->inputData.streamFlags,
-                        this->paStaticCallback, this);
-    PaLOGERR(err, "Pa_OpenStream");
+                        this->paStaticStreamCallback, this);
+    PaLOGERR(err, "Pa_OpenStream\n");
 
-    return paNoError;
+    err = Pa_SetStreamFinishedCallback(this->stream, this->paStaticStreamFinishedCallback);
+    PaLOGERR(err, "Pa_SetStreamFinishedCallback\n");
+
+    return err;
 }
