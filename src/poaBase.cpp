@@ -79,6 +79,16 @@ PaError poaBase::CloseStream()
     return err;
 }
 
+const PaStreamInfo *poaBase::GetStreamInfo()
+{
+    return Pa_GetStreamInfo(this->stream);
+}
+
+double poaBase::GetStreamCpuLoad()
+{
+    return Pa_GetStreamCpuLoad(this->stream);
+}
+
 int poaBase::paStaticStreamCallback(const void *inputBuffer,
                                     void *outputBuffer,
                                     unsigned long framesPerBuffer,

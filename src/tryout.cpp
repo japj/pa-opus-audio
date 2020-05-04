@@ -62,6 +62,9 @@ int tryout()
 
     Pa_Sleep(1000);
 
+    printf("input cpu load %2.20f\n", input.GetStreamCpuLoad());
+    printf("output cpu load %2.20f\n", output.GetStreamCpuLoad());
+
     printf("input callback running: %d\n", input.IsCallbackRunning());
     printf("output callback running: %d\n", input.IsCallbackRunning());
 

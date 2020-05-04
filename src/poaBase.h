@@ -129,6 +129,18 @@ public:
     */
     PaError CloseStream();
 
+    /** Retrieve a pointer to a PaStreamInfo structure containing information
+     about the specified stream.
+    */
+    const PaStreamInfo *GetStreamInfo();
+
+    /** Retrieve CPU usage information for the specified stream.
+     The "CPU Load" is a fraction of total CPU time consumed by a callback stream's
+    audio processing routines including, but not limited to the client supplied
+    stream callback. This function does not work with blocking read/write streams.
+    */
+    double GetStreamCpuLoad();
+
     /* called by low level paStaticStreamCallback , this needs to be public else it can't access it
        and it needs to be overridden by actual implementation 
     */
