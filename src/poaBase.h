@@ -27,6 +27,7 @@ typedef struct poaDeviceData
     unsigned long callbackMaxFrameSize;
     int sampleSize; // calculated based on streamParam.sampleFormat
     int opusMaxFrameSize;
+
 } poaDeviceData;
 
 /**
@@ -116,6 +117,8 @@ protected:
     /* Ring buffer (FIFO) for "communicating" from audio callback */
     PaUtilRingBuffer rIntermediateCallbackBuf;
     void *rIntermediateCallbackBufData;
+    int intermediateRingBufferFrames; // calculated
+    int intermediateRingBufferSize;   // calculated
     /* END data for record callback*/
 
 public:

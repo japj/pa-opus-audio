@@ -40,7 +40,7 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     unsigned long toReadFrames = framesPerBuffer > read_available ? read_available : framesPerBuffer;
     if (toReadFrames != framesPerBuffer)
     {
-        log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames\n", framesPerBuffer - read_available);
+        log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames\n", toReadFrames);
     }
 
     ring_buffer_size_t read;
@@ -71,15 +71,18 @@ bool poaDecodeOutput::writeEncodedOpusFrame(/*int &sequence_number, */ void *dat
     }
     //int availableFrames = data_length / outputData.sampleSize;
 
+    ring_buffer_size_t dataAvailableFrames = data_length / outputData.sampleSize;
+
     ring_buffer_size_t write_available;
     write_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
-    if (write_available < outputData.opusMaxFrameSize)
-    {
-        log("writeEncodedOpusFrame no room for full opus frame, only (%d)\n", write_available);
-        return writtenOpusFrame;
-    }
 
-    ring_buffer_size_t write = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, data, outputData.opusMaxFrameSize);
-    writtenOpusFrame = (write == outputData.opusMaxFrameSize);
+    ring_buffer_size_t toWrite = dataAvailableFrames > write_available ? write_available : dataAvailableFrames;
+
+    ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, data, toWrite);
+    writtenOpusFrame = (written == dataAvailableFrames);
+    if (!writtenOpusFrame)
+    {
+        log("writeEncodedOpusFrame:FAILED to write full opusFrame, written only (%d) frames\n", written);
+    }
     return writtenOpusFrame;
 }

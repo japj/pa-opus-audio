@@ -266,18 +266,23 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     if (inputParams)
     {
         log_pa_stream_info(inputParams);
+
+        // this needs tuning or can it be calculated?
+        // TODO: remove channelCount after encoding data, this is just needed to have enough space for stereo sound?
+
+        intermediateRingBufferFrames = calcSizeUpPow2(2 * inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
+        intermediateRingBufferSize = intermediateRingBufferFrames * inputData.sampleSize * inputData.streamParams.channelCount;
     }
     if (outputParams)
     {
         log_pa_stream_info(outputParams);
+
+        intermediateRingBufferFrames = calcSizeUpPow2(2 * outputData.opusMaxFrameSize + outputData.callbackMaxFrameSize);
+        intermediateRingBufferSize = intermediateRingBufferFrames * outputData.sampleSize * outputData.streamParams.channelCount;
     }
 
     err = Pa_SetStreamFinishedCallback(this->stream, this->paStaticStreamFinishedCallback);
     PaLOGERR(err, "Pa_SetStreamFinishedCallback\n");
-
-    int intermediateRingBufferFrames = calcSizeUpPow2(inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
-    // TODO: remove channelCount after encoding data, this is just needed to have enough space for stereo sound?
-    int intermediateRingBufferSize = intermediateRingBufferFrames * inputData.sampleSize * inputData.streamParams.channelCount;
 
     log("OpenDeviceStream: intermediateRingBufferFrames(%d), intermediateRingBufferSize(%d) sampleSize(%d)\n", intermediateRingBufferFrames, intermediateRingBufferSize, inputData.sampleSize);
     rIntermediateCallbackBufData = AllocateMemory(intermediateRingBufferSize);
