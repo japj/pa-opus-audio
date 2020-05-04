@@ -32,17 +32,24 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
     // 8. trigger opusAvailableFrame callback
 
     ring_buffer_size_t written;
-    ring_buffer_size_t available;
-    available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
-    if (framesPerBuffer > available)
+    ring_buffer_size_t write_available;
+    write_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
+    if (framesPerBuffer > write_available)
     {
-        log("_HandlePaStreamCallback more framesPerBuffer(%ld) than available(%d)", available);
+        log("_HandlePaStreamCallback SKIPPING more framesPerBuffer(%ld) than available(%d)\n", framesPerBuffer, write_available);
         return paContinue;
     }
     written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, inputBuffer, framesPerBuffer);
     if (written != framesPerBuffer)
     {
-        log("_HandlePaStreamCallback should not happen? frames available(%ld), written(%d)", framesPerBuffer, written);
+        log("_HandlePaStreamCallback should not happen? frames available(%ld), written(%d)\n", framesPerBuffer, written);
+    }
+
+    ring_buffer_size_t read_available;
+    read_available = PaUtil_GetRingBufferReadAvailable(&rIntermediateCallbackBuf);
+    if (read_available >= inputData.opusMaxFrameSize)
+    {
+        log("_HandlePaStreamCallback: %dx opusMaxFrameSize available\n", read_available / inputData.opusMaxFrameSize);
     }
 
     return paContinue;
@@ -50,18 +57,24 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
 
 PaError poaEncodeInput::HandleOpenDeviceStream()
 {
-    // TODO: intermediateRingBuffer is probably common
     PaError err = paNoError;
-    int intermediateRingBufferFrames = inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize;
-    // TODO: remove channelCount after encoding data, this is just needed to have enough space for stereo sound?
-    int intermediateRingBufferSize = calcSizeUpPow2(intermediateRingBufferFrames * inputData.sampleSize * inputData.streamParams.channelCount);
+    // TODO: intermediateRingBuffer is probably common
 
+    int intermediateRingBufferFrames = calcSizeUpPow2(inputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
+    // TODO: remove channelCount after encoding data, this is just needed to have enough space for stereo sound?
+    int intermediateRingBufferSize = intermediateRingBufferFrames * inputData.sampleSize * inputData.streamParams.channelCount;
+
+    log("intermediateRingBufferFrames(%d), intermediateRingBufferSize(%d) sampleSize(%d)\n", intermediateRingBufferFrames, intermediateRingBufferSize, inputData.sampleSize);
     rIntermediateCallbackBufData = AllocateMemory(intermediateRingBufferSize);
     if (rIntermediateCallbackBufData == NULL)
     {
         return paInsufficientMemory;
     }
-    err = PaUtil_InitializeRingBuffer(&rIntermediateCallbackBuf, inputData.sampleSize, intermediateRingBufferSize, rIntermediateCallbackBufData);
+    err = PaUtil_InitializeRingBuffer(&rIntermediateCallbackBuf, inputData.sampleSize, intermediateRingBufferFrames, rIntermediateCallbackBufData);
+    if (err != 0)
+    {
+        log("HandleOpenDeviceStream: PaUtil_InitializeRingBuffer failed with %d\n", err);
+    }
 
     return err;
 }
