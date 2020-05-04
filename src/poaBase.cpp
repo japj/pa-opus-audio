@@ -9,6 +9,10 @@ poaBase::poaBase(const char *name) : name(name), stream(NULL), isCallbackRunning
 
 poaBase::~poaBase()
 {
+    if (this->stream)
+    {
+        CloseStream();
+    }
     Pa_Terminate();
 }
 
