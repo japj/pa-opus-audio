@@ -1,7 +1,7 @@
 import { PoaExperimental } from '../lib/binding';
 import Rtp = require('./rtp');
 
-const instance = new PoaExperimental("mr-yeoman");
+const instance = new PoaExperimental("local");
 
 import udp = require('dgram');
 

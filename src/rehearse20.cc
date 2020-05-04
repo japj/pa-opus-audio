@@ -1,3 +1,4 @@
+#include <string.h>
 #include "rehearse20.h"
 #if USE_OLD_ENCODE_DECODE_STREAM
 #include "DecodeWorker.h"
@@ -30,6 +31,9 @@ Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info),
     }
 
     this->_greeterName = info[0].As<Napi::String>().Utf8Value();
+    this->input.setName(this->_greeterName.c_str());
+    this->output.setName(this->_greeterName.c_str());
+
     tsfnSet = false;
 }
 
@@ -124,7 +128,12 @@ Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo &info)
     wk->Queue();
 #else
     // TODO, split encoded data and sequencenumber for js part in orde to send across network
-    output.writeEncodedOpusFrame((poaCallbackTransferData *)buffer.Data());
+    poaCallbackTransferData tData;
+    memset(&tData, 0, sizeof(tData));
+    tData.dataLength = buffer.Length();
+    memcpy(tData.data, buffer.Data(), tData.dataLength);
+    output.writeEncodedOpusFrame(&tData);
+    //output.writeEncodedOpusFrame((poaCallbackTransferData *)buffer.Data());
 #endif
 
     return Napi::Number::New(env, 0);
@@ -177,7 +186,9 @@ void Rehearse20::handleEncodeInStreamCallback(Napi::Env env, Napi::Function jsCa
     bool read = input.readEncodedOpusFrame(&tData);
     if (read)
     {
-        Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(Env(), (uint8_t *)&tData, sizeof(poaCallbackTransferData));
+        // TODO: sequenceNumber
+        //Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(Env(), (uint8_t *)tData->data, sizeof(poaCallbackTransferData));
+        Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(Env(), (uint8_t *)tData.data, tData.dataLength);
         jsCallback.Call({buffer});
     }
     else
