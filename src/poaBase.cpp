@@ -16,7 +16,11 @@ poaBase::poaBase(const char *name) : name(name),
                                      rTransferDataBufData(NULL),
                                      transferDataElements(8) // TODO: determine/calculate good value
 {
-    Pa_Initialize();
+    PaError err = Pa_Initialize();
+    if (err != paNoError)
+    {
+        logPaError(err, "FAILED Pa_Initialize");
+    }
     setupDefaultDeviceData(&inputData);
     setupDefaultDeviceData(&outputData);
 }
@@ -27,7 +31,11 @@ poaBase::~poaBase()
     {
         CloseStream();
     }
-    Pa_Terminate();
+    PaError err = Pa_Terminate();
+    if (err != paNoError)
+    {
+        logPaError(err, "FAILED Pa_Terminate");
+    }
 }
 
 void poaBase::setupDefaultDeviceData(poaDeviceData *data)
