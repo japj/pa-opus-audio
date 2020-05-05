@@ -22,8 +22,8 @@ interface IRehearse20Native {
  * 
  */
 class PoaInput {
-    constructor() {
-        this._addonInstance = new addon.Rehearse20("PoaInput")
+    constructor(name: string = 'PoaInput') {
+        this._addonInstance = new addon.Rehearse20(name)
     }
 
     initStartRecord(): number {
@@ -43,8 +43,8 @@ class PoaInput {
 }
 
 class PoaOutput {
-    constructor() {
-        this._addonInstance = new addon.Rehearse20("PoaOutput")
+    constructor(name: string = 'PoaOutpu') {
+        this._addonInstance = new addon.Rehearse20(name)
     }
 
     initStartPlayback(): number {
