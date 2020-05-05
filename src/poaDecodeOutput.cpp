@@ -35,11 +35,21 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     if (isWriteEncodedOpusFrameCalled)
     {
         ring_buffer_size_t transfer_available;
-        transfer_available = PaUtil_GetRingBufferWriteAvailable(&rTransferDataBuf);
-        if (transfer_available >= 1)
+        ring_buffer_size_t intermediate_available;
+        transfer_available = PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf);
+        intermediate_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
+
+        if (transfer_available >= 1 &&
+            intermediate_available >= outputData.opusMaxFrameSize)
         {
             DecodeOpusFrameFromTransfer();
         }
+        /*else
+        {
+            log("_HandlePaStreamCallback WARNING: transferavailable(%d), intermediateavailable(%d)\n",
+                transfer_available,
+                intermediate_available);
+        }*/
     }
 
     // TODO check with poaEncodeInput for consistency
@@ -56,7 +66,8 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     if (toReadFrames != framesPerBuffer && isWriteEncodedOpusFrameCalled)
     {
         // only log this if encounter buffering issues after WriteEncodedOpusDataFrame has started
-        log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames\n", toReadFrames);
+        log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames at sequence(%d)\n",
+            toReadFrames, decoderSequenceNumber);
         // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
     }
 
@@ -89,7 +100,7 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
 
     if (!IsCallbackRunning())
     {
-        log("poaDecodeOutput::writeEncodedOpusFrame CALLBACK is not running yet, not writing data to rTransferDataBuf yet\n");
+        log("poaDecodeOutput::writeEncodedOpusFrame SKIPPING write, since callback is not running yet\n");
         return writtenOpusFrame;
     }
 
@@ -101,10 +112,12 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
             IsCallbackRunning());
     }
 
+    // TODO: align opusSequeneNumber and decoderSequenceNumber usage
     if (!isWriteEncodedOpusFrameCalled)
     {
         opusSequenceNumber = data->sequenceNumber;
         isWriteEncodedOpusFrameCalled = true;
+        log("writeEncodedOpusFrame isWriteEncodedOpusFrameCalled(%d)\n", isWriteEncodedOpusFrameCalled);
     }
 
     decoderSequenceNumber++;
@@ -158,9 +171,7 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
     ring_buffer_size_t read = PaUtil_ReadRingBuffer(&rTransferDataBuf, &tData, 1);
     if (read != 1)
     {
-        // this might not be an error (yet), callback does not check if encoded data is available before callig
-
-        //log("No encoded data available yet PaUtil_ReadRingBuffer rTransferDataBuf at sequence_number (%d)\n", opusSequenceNumber);
+        log("DecodeOpusFrameFromTransfer: No encoded data available yet PaUtil_ReadRingBuffer rTransferDataBuf at sequence_number (%d)\n", opusSequenceNumber);
 
         // TODO: decode with dec 1??
         return;
@@ -186,16 +197,25 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
                                              dec);
     }
 
+    if (decodedFrameCount < 0)
+    {
+        logOpusError(decodedFrameCount, "DecodeOpusFrameFromTransfer failed decoding opus Frame");
+    }
+
     if (decodedFrameCount != outputData.opusMaxFrameSize)
     {
         log("DecodeOpusFrameFromTransfer could not decode full opus frame, only (%d) frames\n", decodedFrameCount);
     }
 
-    // write decoded data to the intermediate ringbuffer
-    ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, opusDecodeBuffer, decodedFrameCount);
-    if (written != decodedFrameCount)
+    if (decodedFrameCount > 0)
     {
-        log("FAILED PaUtil_WriteRingBuffer rIntermediateCallbackBuf at expected sequenceNumber(%d)\n", opusSequenceNumber + 1);
+        // write decoded data to the intermediate ringbuffer
+        ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, opusDecodeBuffer, decodedFrameCount);
+        if (written != decodedFrameCount)
+        {
+            log("FAILED PaUtil_WriteRingBuffer rIntermediateCallbackBuf at expected sequenceNumber(%d)\n", opusSequenceNumber + 1);
+        }
     }
+
     opusSequenceNumber++;
 }
