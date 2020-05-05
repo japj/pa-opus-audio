@@ -1,5 +1,25 @@
 # content moved from README.md
 
+## latency-work
+
+### test-duplex.js
+
+During switching of apps / stress testing, occurences of:
+
+- [PoaOutput]: _HandlePaStreamCallback: SKIPPING frames/partial playback, only (24) available intermediate frames
+- [PoaOutput]: FAILED PaUtil_WriteRingBuffer rIntermediateCallbackBuf at expected sequenceNumber(3113)
+
+### tryout
+
+This does fully C++ based input/output (not sending the data through the js stack for monitoring)
+(perhaps for local monitoring, the input/output handling needs to be done through C++ only)
+
+### rtp receiver
+
+TODO: test if rtp receiver only playback also has [PoaOutput] issues.
+
+## old content
+
 (this might not be fully accurate atm)
 
 NOTE: Work in progress
