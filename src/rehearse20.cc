@@ -94,8 +94,11 @@ Napi::Value Rehearse20::OutputInitAndStartStream(const Napi::CallbackInfo &info)
         result = output.StartStream();
     }
 #else
-    output.OpenOutputDeviceStream();
-    output.StartStream();
+    result = output.OpenOutputDeviceStream();
+    if (result == 0)
+    {
+        result = output.StartStream();
+    }
 #endif
 
     return Napi::Number::New(env, result);
@@ -158,8 +161,11 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
     }
 #else
     input.registerOpusFrameAvailableCb(paEncodeInStreamOpusFrameAvailableCallback, this);
-    input.OpenInputDeviceStream();
-    input.StartStream();
+    result = input.OpenInputDeviceStream();
+    if (result == 0)
+    {
+        result = input.StartStream();
+    }
 #endif
 
     return Napi::Number::New(env, result);
