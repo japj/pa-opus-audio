@@ -89,7 +89,7 @@ void poaBase::logPaError(PaError err, const char *format, ...)
     va_start(args, format);
     vsprintf(buffer, format, args);
     va_end(args);
-    log("{%s} %s", Pa_GetErrorText(err), buffer);
+    log("ERROR {%s} %s", Pa_GetErrorText(err), buffer);
 }
 
 void poaBase::logOpusError(int err, const char *format, ...)
@@ -99,7 +99,7 @@ void poaBase::logOpusError(int err, const char *format, ...)
     va_start(args, format);
     vsprintf(buffer, format, args);
     va_end(args);
-    log("{%s} %s", opus_strerror(err), buffer);
+    log("ERROR {%s} %s", opus_strerror(err), buffer);
 }
 
 void poaBase::log_pa_stream_info(PaStreamParameters *params)
