@@ -163,6 +163,7 @@ int poaBase::paStaticStreamCallback(const void *inputBuffer,
     {
         // ensure we know when the callback is actually running
         data->isCallbackRunning = true;
+        data->log("paStaticStreamCallback:isCallbackRunning: %d\n", data->isCallbackRunning);
     }
 
     /* call the actual handler at c++ object side */
@@ -177,6 +178,7 @@ void poaBase::paStaticStreamFinishedCallback(void *userData)
     {
         // ensure we know when the callback is actually stopped
         data->isCallbackRunning = false;
+        data->log("paStaticStreamFinishedCallback:isCallbackRunning: %d\n", data->isCallbackRunning);
     }
 
     data->_HandlePaStreamFinished();
