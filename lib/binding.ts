@@ -43,7 +43,7 @@ class PoaInput {
 }
 
 class PoaOutput {
-    constructor(name: string = 'PoaOutpu') {
+    constructor(name: string = 'PoaOutput') {
         this._addonInstance = new addon.Rehearse20(name)
     }
 
