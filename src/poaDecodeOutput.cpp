@@ -5,7 +5,8 @@ poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
                                                      isWriteEncodedOpusFrameCalled(false),
                                                      decoder(NULL),
                                                      opusDecodeBuffer(NULL),
-                                                     opusDecodeBufferSize(0)
+                                                     opusDecodeBufferSize(0),
+                                                     decoderSequenceNumber(0)
 {
     //is this needed? outputData.streamParams.channelCount = 2;
 }
@@ -89,7 +90,9 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
     ring_buffer_size_t write = PaUtil_WriteRingBuffer(&rTransferDataBuf, data, 1);
     if (write != 1)
     {
-        log("poaDecodeOutput::writeEncodedOpusFrame failed to write data to rTransferDataBuf for sequence_number(%d)\n", data->sequenceNumber);
+        log("poaDecodeOutput::writeEncodedOpusFrame FAILED to write data to rTransferDataBuf for decoderSequenceNumber(%5d), IsCallbackRunning: %d\n",
+            decoderSequenceNumber,
+            IsCallbackRunning());
     }
 
     if (!isWriteEncodedOpusFrameCalled)
@@ -97,6 +100,8 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
         opusSequenceNumber = data->sequenceNumber;
         isWriteEncodedOpusFrameCalled = true;
     }
+
+    decoderSequenceNumber++;
     return write == 1;
 }
 
