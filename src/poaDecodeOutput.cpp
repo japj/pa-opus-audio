@@ -87,6 +87,12 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
 {
     bool writtenOpusFrame = false;
 
+    if (!IsCallbackRunning())
+    {
+        log("poaDecodeOutput::writeEncodedOpusFrame CALLBACK is not running yet, not writing data to rTransferDataBuf yet");
+        return writtenOpusFrame;
+    }
+
     ring_buffer_size_t write = PaUtil_WriteRingBuffer(&rTransferDataBuf, data, 1);
     if (write != 1)
     {
