@@ -245,6 +245,7 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     double sampleRate;
     unsigned long callbackMaxFrameSize;
     PaStreamFlags streamFlags;
+    int sampleSize;
 
     if (requestedInputDevice != paNoDevice)
     {
@@ -256,6 +257,7 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         sampleRate = inputData.sampleRate;
         callbackMaxFrameSize = inputData.callbackMaxFrameSize;
         streamFlags = inputData.streamFlags;
+        sampleSize = inputData.sampleSize;
     }
     if (requestedOutputDevice != paNoDevice)
     {
@@ -267,8 +269,16 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         sampleRate = outputData.sampleRate;
         callbackMaxFrameSize = outputData.callbackMaxFrameSize;
         streamFlags = outputData.streamFlags;
+        sampleSize = outputData.sampleSize;
     }
-
+    /*
+    log("Pa_OpenStream:\n");
+    log("Pa_OpenStream: inputParams             %x\n", inputParams);
+    log("Pa_OpenStream: outputParams            %x\n", outputParams);
+    log("Pa_OpenStream: sampleRate              %5.f\n", sampleRate);
+    log("Pa_OpenStream: callbackMaxFrameSize    %d\n", callbackMaxFrameSize);
+    log("Pa_OpenStream: streamFlags             %x\n", streamFlags);
+    */
     err = Pa_OpenStream(&this->stream,
                         inputParams,
                         outputParams,
@@ -296,14 +306,14 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         // logging by [output]: writeEncodedOpusFrame:FAILED to write full opusFrame, written only (112) frames
 
         //intermediateRingBufferFrames = calcSizeUpPow2(2 * outputData.opusMaxFrameSize);
-        intermediateRingBufferFrames = calcSizeUpPow2(1 * outputData.opusMaxFrameSize + inputData.callbackMaxFrameSize);
+        intermediateRingBufferFrames = calcSizeUpPow2(1 * outputData.opusMaxFrameSize + outputData.callbackMaxFrameSize);
         intermediateRingBufferSize = intermediateRingBufferFrames * outputData.sampleSize * outputData.streamParams.channelCount;
     }
 
     err = Pa_SetStreamFinishedCallback(this->stream, this->paStaticStreamFinishedCallback);
     PaLOGERR(err, "Pa_SetStreamFinishedCallback\n");
 
-    log("OpenDeviceStream: intermediateRingBufferFrames(%d), intermediateRingBufferSize(%d) sampleSize(%d)\n", intermediateRingBufferFrames, intermediateRingBufferSize, inputData.sampleSize);
+    log("OpenDeviceStream: intermediateRingBufferFrames(%d), intermediateRingBufferSize(%d) sampleSize(%d)\n", intermediateRingBufferFrames, intermediateRingBufferSize, sampleSize);
 
     /*** INTERMEDIATE RINGBUFFER ALLOCATION */
     rIntermediateCallbackBufData = AllocateMemory(intermediateRingBufferSize);
@@ -312,7 +322,7 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         log("rIntermediateCallbackBufData AllocateMemory FAILED\n");
         return paInsufficientMemory;
     }
-    err = PaUtil_InitializeRingBuffer(&rIntermediateCallbackBuf, inputData.sampleSize, intermediateRingBufferFrames, rIntermediateCallbackBufData);
+    err = PaUtil_InitializeRingBuffer(&rIntermediateCallbackBuf, sampleSize, intermediateRingBufferFrames, rIntermediateCallbackBufData);
     if (err != 0)
     {
         log("OpenDeviceStream: PaUtil_InitializeRingBuffer rIntermediateCallbackBuf failed with %d\n", err);
