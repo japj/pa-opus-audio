@@ -18,6 +18,7 @@ private:
     void *rBufFromRTData;
     /* END data for record callback*/
 
+    std::mutex encodeRecordingIntoDataMutex;
     /* BEGIN data for record opus encoder */
     int sampleSizeSizeBytes;
     int channels;
@@ -37,6 +38,8 @@ private:
                                    // frames per buffer for OS Audio buffer*/
 
     PaStreamParameters inputParameters;
+    // don't log missing audio data before encoding has started
+    bool firstEncodeCalled;
     /* */
 
     paEncodeInStreamOpusFrameAvailableCallback *userCallbackOpusFrameAvailable;
@@ -61,6 +64,7 @@ public:
 
     /* TODO: some of these functions are here due to the move in progres and might not end up as part of the final API */
     int GetRingBufferReadAvailable(); // usefull for diagnostics
+    int GetOpusFullFramesReadAvailable();
 
     void setUserCallbackOpusFrameAvailable(paEncodeInStreamOpusFrameAvailableCallback cb, void *userData);
 

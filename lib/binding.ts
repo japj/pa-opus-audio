@@ -1,11 +1,10 @@
-const addon = require('../build/Release/pa-opus-audio');
+const addon = require('bindings')('pa-opus-audio');
 
-//use this for debug builds with meaningfull stack trace symbols 
-//const addon = require('../build/Debug/pa-opus-audio');
 
 interface IRehearse20Native {
     greet(strName: string): string;
     detect(): number;
+    tryout(): number;
     protoring(): number;
 
     OutputInitAndStartStream(): number;
@@ -23,19 +22,19 @@ interface IRehearse20Native {
  * 
  */
 class PoaInput {
-    constructor() {
-        this._addonInstance = new addon.Rehearse20("PoaInput")
+    constructor(name: string = 'PoaInput') {
+        this._addonInstance = new addon.Rehearse20(name)
     }
 
     initStartRecord(): number {
         return this._addonInstance.InputInitAndStartStream();
     }
 
-    stopRecord():number {
+    stopRecord(): number {
         return this._addonInstance.InputStopStream();
     }
 
-    setEncodedFrameAvailableCallback(cb:Function): number {
+    setEncodedFrameAvailableCallback(cb: Function): number {
         return this._addonInstance.SetEncodedFrameAvailableCallBack(cb);
     }
 
@@ -44,8 +43,8 @@ class PoaInput {
 }
 
 class PoaOutput {
-    constructor() {
-        this._addonInstance = new addon.Rehearse20("PoaOutput")
+    constructor(name: string = 'PoaOutput') {
+        this._addonInstance = new addon.Rehearse20(name)
     }
 
     initStartPlayback(): number {
@@ -56,7 +55,7 @@ class PoaOutput {
         return this._addonInstance.OutputStopStream();
     }
 
-    decodeAndPlay(data:Buffer): number {
+    decodeAndPlay(data: Buffer): number {
         return this._addonInstance.DecodeDataIntoPlayback(data);
     }
 
@@ -91,17 +90,21 @@ class PoaExperimental {
         return this._addonInstance.detect();
     }
 
+    tryout(): number {
+        return this._addonInstance.tryout();
+    }
+
     /**
      * 
      */
-    protoring():number {
+    protoring(): number {
         return this._addonInstance.protoring();
     }
 
     /**
      * 
      */
-    OutputInitAndStartStream():number {
+    OutputInitAndStartStream(): number {
         return this._addonInstance.OutputInitAndStartStream();
     }
 
@@ -109,14 +112,14 @@ class PoaExperimental {
      * Playback audio by decoding previously encoded data
      * @param data Buffer to be decoded into playback
      */
-    DecodeDataIntoPlayback(data: Buffer):number {
+    DecodeDataIntoPlayback(data: Buffer): number {
         return this._addonInstance.DecodeDataIntoPlayback(data);
     }
 
     /**
      * Start the input stream
      */
-    InputInitAndStartStream():number {
+    InputInitAndStartStream(): number {
         return this._addonInstance.InputInitAndStartStream();
     }
 
@@ -128,7 +131,7 @@ class PoaExperimental {
      * Setup callback for receiving encoded data that was recorded
      * @param cb callback for receiving encoded data
      */
-    SetEncodedFrameAvailableCallBack(cb: Function):number {
+    SetEncodedFrameAvailableCallBack(cb: Function): number {
         return this._addonInstance.SetEncodedFrameAvailableCallBack(cb);
     }
 
@@ -137,7 +140,7 @@ class PoaExperimental {
 }
 
 //export = Rehearse20;
-export { 
+export {
     PoaInput,
     PoaOutput,
     PoaExperimental

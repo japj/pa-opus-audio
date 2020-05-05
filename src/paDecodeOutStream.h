@@ -2,6 +2,7 @@
 #define _PA_DECODE_OUT_STREAM
 
 #include "paStreamCommon.h"
+#include <mutex>
 
 class paDecodeOutStream
 {
@@ -13,12 +14,19 @@ private:
     void *rBufToRTData;
     /* END data for playback callback*/
 
+    std::mutex decodeDataIntoPlaybackMutex;
     /* BEGIN data for playback opus decoder */
-    int frameSizeBytes;
+    int sampleSizeSizeBytes;
     int channels;
     OpusDecoder *decoder;
+    /*
+    opusMaxFrameSize notes:
+    relates to opus_decode number of samples per channel of available space in pcm. 
+    If this is less than the maximum packet duration (120ms; 5760 for 48kHz), this function will not be capable of decoding some packets.
+    */
     void *opusDecodeBuffer;
     int opusMaxFrameSize;
+    int firstFramesize;
     /* END data for playback opus decoder */
 
     /* PaStream info */
@@ -27,12 +35,14 @@ private:
     /* this is data that is needed for calculation of information and cannot change after opening stream*/
     unsigned int sampleRate;
     PaSampleFormat sampleFormat;
-    long bufferElements;           // = 4096; // TODO: calculate optimal ringbuffer size
+    long maxRingBufferSamples;     // = 4096; // TODO: calculate optimal ringbuffer size
     int paCallbackFramesPerBuffer; // = 64; /* since opus decodes 120 frames, this is closests to how our latency is going to be
                                    // frames per buffer for OS Audio buffer*/
     //unsigned int channels; already as part of decoder needed data;
 
     PaStreamParameters outputParameters;
+    // don't log missing audio data before decoding has started
+    bool firstDecodeCalled;
     /* */
 
 public:

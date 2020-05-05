@@ -1,8 +1,18 @@
+#include <string.h>
 #include "rehearse20.h"
+#if USE_OLD_ENCODE_DECODE_STREAM
+#include "DecodeWorker.h"
+#include "EncodeWorker.h"
+#else
+int protoring();
+#endif
+#include "tryout.h"
 
 using namespace Napi;
 
-Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info)
+Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info),
+                                                         input("input"),
+                                                         output("output")
 {
     Napi::Env env = info.Env();
 
@@ -21,6 +31,9 @@ Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info)
     }
 
     this->_greeterName = info[0].As<Napi::String>().Utf8Value();
+    this->input.setName(this->_greeterName.c_str());
+    this->output.setName(this->_greeterName.c_str());
+
     tsfnSet = false;
 }
 
@@ -73,11 +86,20 @@ Napi::Value Rehearse20::Protoring(const Napi::CallbackInfo &info)
 Napi::Value Rehearse20::OutputInitAndStartStream(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-    int result = output.InitForDevice();
+    int result = 0;
+#if USE_OLD_ENCODE_DECODE_STREAM
+    result = output.InitForDevice();
     if (result == 0)
     {
         result = output.StartStream();
     }
+#else
+    result = output.OpenOutputDeviceStream();
+    if (result == 0)
+    {
+        result = output.StartStream();
+    }
+#endif
 
     return Napi::Number::New(env, result);
 }
@@ -102,16 +124,31 @@ Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo &info)
 
     Buffer<uint8_t> buffer = info[0].As<Buffer<uint8_t>>();
 
-    int result = output.DecodeDataIntoPlayback(buffer.Data(), (int)buffer.Length());
+#if USE_OLD_ENCODE_DECODE_STREAM
+    // run the actual decoding in a seperate worker
+    // TODO: how to ensure multiple DecodeWorkers don't run into each other (or order gets confused)?
+    DecodeWorker *wk = new DecodeWorker(env, buffer, &output);
+    wk->Queue();
+#else
+    // TODO, split encoded data and sequencenumber for js part in orde to send across network
+    poaCallbackTransferData tData;
+    memset(&tData, 0, sizeof(tData));
+    tData.dataLength = buffer.Length();
+    memcpy(tData.data, buffer.Data(), tData.dataLength);
+    output.writeEncodedOpusFrame(&tData);
+    //output.writeEncodedOpusFrame((poaCallbackTransferData *)buffer.Data());
+#endif
 
-    return Napi::Number::New(env, result);
+    return Napi::Number::New(env, 0);
 }
 
 Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    int result = input.InitForDevice();
+    int result = 0;
+#if USE_OLD_ENCODE_DECODE_STREAM
+    result = input.InitForDevice();
 
     encodeBufferSize = input.GetUncompressedBufferSizeBytes();
     encodeBuffer = (uint8_t *)ALLIGNEDMALLOC(encodeBufferSize);
@@ -122,27 +159,16 @@ Napi::Value Rehearse20::InputInitAndStartStream(const Napi::CallbackInfo &info)
     {
         result = input.StartStream();
     }
-
-    return Napi::Number::New(env, 0);
-}
-
-Napi::Value Rehearse20::EncodeRecordingIntoData(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize);
-    if (encodedPacketSize > 0)
+#else
+    input.registerOpusFrameAvailableCb(paEncodeInStreamOpusFrameAvailableCallback, this);
+    result = input.OpenInputDeviceStream();
+    if (result == 0)
     {
-        // TODO: busy looping, needs API design based on notification/callbacks
+        result = input.StartStream();
+    }
+#endif
 
-        Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, this->encodeBuffer, encodedPacketSize);
-        return buffer;
-    }
-    else
-    {
-        // return NULL object
-        return env.Null();
-    }
+    return Napi::Number::New(env, result);
 }
 
 // static callback for NAPI
@@ -155,17 +181,28 @@ void Rehearse20::JsThreadHandleEncodeInStreamCallback(Napi::Env env, Napi::Funct
 
 void Rehearse20::handleEncodeInStreamCallback(Napi::Env env, Napi::Function jsCallback)
 {
-    int encodedPacketSize = input.EncodeRecordingIntoData(this->encodeBuffer, this->encodeBufferSize);
-    if (encodedPacketSize > 0)
+    // run the actual encoding in a seperate worker
+    // TODO: how to ensure multiple EncodeWorkers don't run into each other (or order gets confused)?
+#if USE_OLD_ENCODE_DECODE_STREAM
+    EncodeWorker *wk = new EncodeWorker(jsCallback, &this->input);
+    wk->Queue();
+#else
+    // TODO
+    poaCallbackTransferData tData;
+    bool read = input.readEncodedOpusFrame(&tData);
+    if (read)
     {
-        Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, this->encodeBuffer, encodedPacketSize);
+        // TODO: sequenceNumber
+        //Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(Env(), (uint8_t *)tData->data, sizeof(poaCallbackTransferData));
+        Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(Env(), (uint8_t *)tData.data, tData.dataLength);
         jsCallback.Call({buffer});
     }
     else
     {
-        // return NULL object
-        jsCallback.Call({env.Null()});
+        printf("readEncodedOpusFrame failed?? \n");
+        jsCallback.Call({Env().Null()});
     }
+#endif
 }
 
 // trigger the async execution of the ThreadSafeFunction
@@ -276,10 +313,20 @@ Napi::Value Rehearse20::InputStopStream(const Napi::CallbackInfo &info)
     return Napi::Number::New(env, err);
 }
 
+Napi::Value Rehearse20::Tryout(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    int result = tryout();
+
+    return Napi::Number::New(env, result);
+}
+
 Napi::Function Rehearse20::GetClass(Napi::Env env)
 {
     return DefineClass(env, "Rehearse20", {
                                               Rehearse20::InstanceMethod("greet", &Rehearse20::Greet),
+                                              Rehearse20::InstanceMethod("tryout", &Rehearse20::Tryout),
                                               Rehearse20::InstanceMethod("detect", &Rehearse20::Detect),
                                               Rehearse20::InstanceMethod("protoring", &Rehearse20::Protoring),
                                               Rehearse20::InstanceMethod("OutputInitAndStartStream", &Rehearse20::OutputInitAndStartStream),
