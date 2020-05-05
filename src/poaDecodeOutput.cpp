@@ -89,7 +89,7 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
 
     if (!IsCallbackRunning())
     {
-        log("poaDecodeOutput::writeEncodedOpusFrame CALLBACK is not running yet, not writing data to rTransferDataBuf yet");
+        log("poaDecodeOutput::writeEncodedOpusFrame CALLBACK is not running yet, not writing data to rTransferDataBuf yet\n");
         return writtenOpusFrame;
     }
 
