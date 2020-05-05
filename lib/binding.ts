@@ -1,7 +1,5 @@
-const addon = require('../build/Release/pa-opus-audio');
+const addon = require('bindings')('pa-opus-audio');
 
-//use this for debug builds with meaningfull stack trace symbols 
-//const addon = require('../build/Debug/pa-opus-audio');
 
 interface IRehearse20Native {
     greet(strName: string): string;
