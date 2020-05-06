@@ -43,6 +43,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 
 add_compile_definitions(NAPI_VERSION=${napi_build_version})
 
+# ntohs on windows requires linking to ws2_32
+if(WIN32)
+list(APPEND CMAKE_JS_LIB ws2_32)
+endif()
+
 # Essential library files to link to a node addon (+ portaudio/opus),
 # you should add this line in every CMake.js based project.
 target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB} portaudio_static Opus::opus)
