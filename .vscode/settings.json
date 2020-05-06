@@ -5,5 +5,7 @@
     },
     "C_Cpp.default.includePath": [
         ".vscode/napi-include-vscode",
-        "node_modules/node-addon-api"]
+        "node_modules/node-addon-api"
+    ],
+    "cmake.configureOnOpen": true
 }
