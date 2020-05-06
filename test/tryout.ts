@@ -1,5 +1,11 @@
 const PoaExperimental = require("../lib/binding.js").PoaExperimental;
 
-const instance = new PoaExperimental("mr-yeoman");
+const poa = new PoaExperimental("mr-yeoman");
 
-instance.tryout();
+poa.tryout();
+
+setTimeout(function () {
+    console.log('Blah blah blah blah extra-blah');
+    poa.detect();
+    process.exit();
+}, 3000000);

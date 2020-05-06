@@ -237,21 +237,28 @@ public:
     const unsigned int portRecv = 2223;
 };
 
+// temp workaround for getting to nodejs eventloop outside tryout
+poaEncodeInput *input = NULL;
+poaDecodeOutput *output = NULL;
+
+HandleUdpDuplexCallback *recordingHandler = NULL;
+
 int tryout()
 {
 #if START_INPUT
-    poaEncodeInput input("input");
-    input.log("testing %d\n", 1);
+    input = new poaEncodeInput("input");
+    input->log("testing %d\n", 1);
 #endif
 #if START_OUTPUT
-    poaDecodeOutput output("output");
-    output.log("testing %s\n", "foo");
+    output = new poaDecodeOutput("output");
+    output->log("testing %s\n", "foo");
 #endif
 
 #define USE_UDP 1
 #if USE_UDP
-    auto loop = uvw::Loop::create();
-    HandleUdpDuplexCallback recordingHandler(*loop, &input, &output);
+    // for now cannot use default loop since that is nodejs one and we would need to exit this tryout function for it to do work again
+    auto loop = uvw::Loop::getDefault();
+    recordingHandler = new HandleUdpDuplexCallback(*loop, input, output);
 #else
     // only works if START_INPUT and START_OUTPUT are defined
     HandleOpusDataTransferCallback recordingHandler(&input, &output);
@@ -260,37 +267,41 @@ int tryout()
     PaError err;
 
 #if START_INPUT
-    err = input.OpenInputDeviceStream();
+    err = input->OpenInputDeviceStream();
     LOGERR(err, "input.OpenInputDeviceStream");
 #endif
 
 #if START_OUTPUT
-    err = output.OpenOutputDeviceStream();
+    err = output->OpenOutputDeviceStream();
     LOGERR(err, "output.OpenOutputDeviceStream");
 #endif
 
 #if START_INPUT
-    printf("input callback running: %d\n", input.IsCallbackRunning());
+    printf("input callback running: %d\n", input->IsCallbackRunning());
 #endif
 #if START_OUTPUT
-    printf("output callback running: %d\n", output.IsCallbackRunning());
+    printf("output callback running: %d\n", output->IsCallbackRunning());
 #endif
 
     printf("StartStream\n");
 #if START_INPUT
-    err = input.StartStream();
+    err = input->StartStream();
     LOGERR(err, "input.StartStream");
 #endif
 #if START_OUTPUT
-    err = output.StartStream();
+    err = output->StartStream();
     LOGERR(err, "output.StartStream");
 #endif
 
 #if USE_UDP
-    loop->run();
+    //loop->run();
 #endif
+    return 0;
+}
 
-    Pa_Sleep(5000);
+#if 0
+int next() {}
+    Pa_Sleep(1000);
 
 #if START_INPUT
     printf("input callback running: %d\n", input.IsCallbackRunning());
@@ -353,3 +364,4 @@ int tryout()
     tryUdp();
     return 0;
 }
+#endif
