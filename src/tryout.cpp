@@ -224,6 +224,7 @@ public:
     poaEncodeInput *in;
     poaDecodeOutput *out;
     int cbCount;
+<<<<<<< HEAD
 
     int sendCount;
 
@@ -232,6 +233,8 @@ public:
 
     const std::string address = std::string{"127.0.0.1"};
     const unsigned int portRecv = 2223;
+=======
+>>>>>>> 49931537cf10e360f9ea55c598841d973ac8316a
 };
 
 int tryout()
