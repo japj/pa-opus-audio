@@ -4,8 +4,8 @@
         "ios": "cpp"
     },
     "C_Cpp.default.includePath": [
-        ".vscode/napi-include-vscode",
-        "node_modules/node-addon-api"
+        "node_modules/node-addon-api",
+        "~/.cmake-js/node-x64/v12.16.2/include/node"
     ],
     "cmake.configureOnOpen": true
 }

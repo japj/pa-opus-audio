@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Integrate with vcpkg installed ports
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+set(CMAKE_CXX_STANDARD 17)
 
 # on windows we need to use static (crt) linking
 if (WIN32)
