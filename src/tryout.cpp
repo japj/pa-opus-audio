@@ -74,10 +74,6 @@ public:
         bufferSize = 10240;                  //in->GetUncompressedBufferSizeBytes();
         transferBuffer = malloc(bufferSize); //ALLIGNEDMALLOC(bufferSize);
         cbCount = 0;
-        /*
-        cbCountErrors = 0;
-        totalEncodedPacketSize = 0;
-        totalFramesWritten = 0;*/
 
         // register callback handler
         in->registerOpusFrameAvailableCb(callbackHandler, this);
@@ -109,44 +105,6 @@ public:
         {
             printf("HandleOneOpusFrameAvailable could not writeEncodedOpusFrame??\n");
         }
-        /*
-
-        int read = in->readEncodedOpusFrame(transferBuffer, bufferSize);
-        if (read > 0)
-        {
-            bool write = out->writeEncodedOpusFrame(transferBuffer, read);
-            if (!write)
-            {
-                printf("\nHandleOneOpusFrameAvailable: FAILED writeEncodedOpusFrame at %d\n", cbCount);
-            }
-        }
-
-        // this should happen once every second due to 2.5ms frame
-        if (cbCount % 400 == 0)
-        {
-            // error
-            printf("HandleOneOpusFrameAvailable cbCount: %5d, readBytes: %5d\n",
-                   cbCount, read);
-        }
-*/
-        /*
-
-        ring_buffer_size_t framesWritten = 0;
-        int encodedPacketSize = in->EncodeRecordingIntoData(transferBuffer, bufferSize);
-
-        if (encodedPacketSize > 0)
-        {
-            //printf("going to DecodeDataIntoPlayback: %d\n", encodedPacketSize);
-            // decode audio
-            framesWritten = out->DecodeDataIntoPlayback(transferBuffer, encodedPacketSize);
-
-            totalFramesWritten += framesWritten;
-            totalEncodedPacketSize += encodedPacketSize;
-        }
-        else
-        {
-            cbCountErrors++;
-        }*/
     }
 
 private:
@@ -156,11 +114,66 @@ private:
     int bufferSize;
     void *transferBuffer;
     int cbCount;
-    /*
-    
-    int cbCountErrors;
-    int totalEncodedPacketSize;
-    int totalFramesWritten;*/
+};
+
+class HandleUdpDuplexCallback
+{
+    // callback handler that is called from paEncodeInstream to notify that an opus frame is available
+    static void callbackHandler(void *userData)
+    {
+        HandleUdpDuplexCallback *p = (HandleUdpDuplexCallback *)userData;
+        p->HandleOneOpusFrameAvailableFromInput();
+    }
+
+public:
+    HandleUdpDuplexCallback(poaEncodeInput *input, poaDecodeOutput *output)
+    {
+        in = input;
+        out = output;
+        //bufferSize = 10240;                  //in->GetUncompressedBufferSizeBytes();
+        //transferBuffer = malloc(bufferSize); //ALLIGNEDMALLOC(bufferSize);
+        cbCount = 0;
+
+        // register callback handler
+        in->registerOpusFrameAvailableCb(callbackHandler, this);
+    }
+
+    void HandleOneOpusFrameAvailableFromInput()
+    {
+        //printf("\nHandleOpusDataTransferCallback::HandleOneOpusFrameAvailable\n");
+        cbCount++;
+
+        int available = in->encodedOpusFramesAvailable();
+        if (available < 1)
+        {
+            printf("HandleOneOpusFrameAvailable got trigger, but no frame available??? \n");
+            return;
+        }
+
+        poaCallbackTransferData data;
+        bool read = in->readEncodedOpusFrame(&data);
+        if (!read)
+        {
+            printf("HandleOneOpusFrameAvailable could not readEncodedOpusFrame??\n");
+            return;
+        }
+
+        // TODO write to UDP socket
+    }
+
+    // TODO: receive from UDP socket
+    void HandleOneOpusFrameAvailableFromUDP(poaCallbackTransferData *data)
+    {
+        bool written = out->writeEncodedOpusFrame(data);
+        if (!written)
+        {
+            printf("HandleOneOpusFrameAvailable could not writeEncodedOpusFrame??\n");
+        }
+    }
+
+    poaEncodeInput *in;
+    poaDecodeOutput *out;
+    int cbCount;
 };
 
 int tryout()
