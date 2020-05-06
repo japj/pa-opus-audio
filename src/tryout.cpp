@@ -1,3 +1,4 @@
+#include <string.h>
 #include "poaDecodeOutput.h"
 #include "poaEncodeInput.h"
 
