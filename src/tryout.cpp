@@ -136,6 +136,46 @@ public:
 
         // register callback handler
         in->registerOpusFrameAvailableCb(callbackHandler, this);
+
+        auto loop = uvw::Loop::getDefault();
+
+        server = loop->resource<uvw::UDPHandle>();
+        client = loop->resource<uvw::UDPHandle>();
+
+        server->on<uvw::ErrorEvent>([](const uvw::ErrorEvent &e, uvw::UDPHandle &) {
+            printf("server Error: %d %s\n", e.code(), e.what());
+        });
+        client->on<uvw::ErrorEvent>([](const uvw::ErrorEvent &e, uvw::UDPHandle &) {
+            printf("client Error: %d %s\n", e.code(), e.what());
+        });
+
+        server->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent &e, uvw::UDPHandle &h) {
+            this->uvwHandleUDPDataEvent(e, h);
+        });
+
+        server->bind(address, portRecv);
+        server->recv();
+    }
+
+    void uvwHandleUDPDataEvent(const uvw::UDPDataEvent &e, uvw::UDPHandle &h)
+    {
+        if (e.length != sizeof(poaCallbackTransferData))
+        {
+            printf("uvwHandleUDPDataEvent UNEXPECTED size %ld\n", e.length);
+            return;
+        }
+
+        poaCallbackTransferData *payload = (poaCallbackTransferData *)e.data.get();
+        bool written = out->writeEncodedOpusFrame(payload);
+        if (!written)
+        {
+            printf("HandleOneOpusFrameAvailable could not writeEncodedOpusFrame??\n");
+        }
+    }
+
+    void uvwHandleErrorEvent(const uvw::ErrorEvent &e, uvw::UDPHandle &)
+    {
+        printf("UVW ERROR: %d %s\n", e.code(), e.what());
     }
 
     void HandleOneOpusFrameAvailableFromInput()
@@ -159,6 +199,7 @@ public:
         }
 
         // TODO write to UDP socket
+        send(&data);
     }
 
     // TODO: receive from UDP socket
@@ -171,9 +212,26 @@ public:
         }
     }
 
+    void send(const poaCallbackTransferData *payload)
+    {
+        printf("send (%d)\n", sendCount);
+        std::unique_ptr<char[]> data{new char[sizeof(poaCallbackTransferData)]};
+        std::memcpy(data.get(), payload, sizeof(poaCallbackTransferData));
+        client->send(address, portRecv, std::move(data), sizeof(poaCallbackTransferData));
+        sendCount++;
+    }
+
     poaEncodeInput *in;
     poaDecodeOutput *out;
     int cbCount;
+
+    int sendCount;
+
+    std::shared_ptr<uvw::UDPHandle> server;
+    std::shared_ptr<uvw::UDPHandle> client;
+
+    const std::string address = std::string{"127.0.0.1"};
+    const unsigned int portRecv = 2223;
 };
 
 int tryout()
@@ -187,8 +245,13 @@ int tryout()
     output.log("testing %s\n", "foo");
 #endif
 
+#define USE_UDP 1
+#if USE_UDP
+    HandleUdpDuplexCallback recordingHandler(&input, &output);
+#else
     // only works if START_INPUT and START_OUTPUT are defined
     HandleOpusDataTransferCallback recordingHandler(&input, &output);
+#endif
 
     PaError err;
 
