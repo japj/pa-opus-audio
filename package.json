@@ -34,8 +34,8 @@
         "typescript": "^2.3.3"
     },
     "scripts": {
-        "install": "prebuild-install -t 4 -r napi --verbose || npm run rebuild",
-        "do-prebuild": "prebuild -t 4 -r napi --backend cmake-js",
+        "install": "prebuild-install --verbose || npm run rebuild",
+        "do-prebuild": "prebuild --backend cmake-js -- --CDnapi_build_version=4",
         "prerebuild": "npm run vcpkgupdate",
         "rebuild": "cmake-js rebuild --CDnapi_build_version=4",
         "postrebuild": "tsc",
