@@ -128,7 +128,7 @@ class HandleUdpDuplexCallback
     }
 
 public:
-    HandleUdpDuplexCallback(poaEncodeInput *input, poaDecodeOutput *output)
+    HandleUdpDuplexCallback(uvw::Loop &loop, poaEncodeInput *input, poaDecodeOutput *output)
     {
         in = input;
         out = output;
@@ -139,10 +139,11 @@ public:
         // register callback handler
         in->registerOpusFrameAvailableCb(callbackHandler, this);
 
-        auto loop = uvw::Loop::getDefault();
+        // TODO: running this on the node loop will not run that async receive
+        // until default loop can process stuff
 
-        server = loop->resource<uvw::UDPHandle>();
-        client = loop->resource<uvw::UDPHandle>();
+        server = loop.resource<uvw::UDPHandle>();
+        client = loop.resource<uvw::UDPHandle>();
 
         server->on<uvw::ErrorEvent>([](const uvw::ErrorEvent &e, uvw::UDPHandle &) {
             printf("server Error: %d %s\n", e.code(), e.what());
@@ -216,7 +217,7 @@ public:
 
     void send(const poaCallbackTransferData *payload)
     {
-        printf("send (%d)\n", sendCount);
+        //printf("send (%d)\n", sendCount);
         std::unique_ptr<char[]> data{new char[sizeof(poaCallbackTransferData)]};
         std::memcpy(data.get(), payload, sizeof(poaCallbackTransferData));
         client->send(address, portRecv, std::move(data), sizeof(poaCallbackTransferData));
@@ -249,7 +250,8 @@ int tryout()
 
 #define USE_UDP 1
 #if USE_UDP
-    HandleUdpDuplexCallback recordingHandler(&input, &output);
+    auto loop = uvw::Loop::create();
+    HandleUdpDuplexCallback recordingHandler(*loop, &input, &output);
 #else
     // only works if START_INPUT and START_OUTPUT are defined
     HandleOpusDataTransferCallback recordingHandler(&input, &output);
@@ -282,6 +284,10 @@ int tryout()
 #if START_OUTPUT
     err = output.StartStream();
     LOGERR(err, "output.StartStream");
+#endif
+
+#if USE_UDP
+    loop->run();
 #endif
 
     Pa_Sleep(5000);
