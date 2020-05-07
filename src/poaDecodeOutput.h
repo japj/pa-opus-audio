@@ -9,6 +9,8 @@ private:
     /* data */
     bool isWriteEncodedOpusFrameCalled;
 
+    int framesSkippedLastTime;
+
     OpusDecoder *decoder;
     void *opusDecodeBuffer;
     int opusDecodeBufferSize; //Number of samples per channel of available space in pcm.
