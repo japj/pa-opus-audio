@@ -5,8 +5,7 @@ poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
                                                      isWriteEncodedOpusFrameCalled(false),
                                                      decoder(NULL),
                                                      opusDecodeBuffer(NULL),
-                                                     opusDecodeBufferSize(0),
-                                                     decoderSequenceNumber(0)
+                                                     opusDecodeBufferSize(0)
 {
     //is this needed? outputData.streamParams.channelCount = 2;
 }
@@ -39,6 +38,7 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
         transfer_available = PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf);
         intermediate_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
 
+        //TODO: determine when is the point where we ask opus to generate audio based on missed packet?
         if (transfer_available >= 1 &&
             intermediate_available >= outputData.opusMaxFrameSize)
         {
@@ -67,7 +67,7 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     {
         // only log this if encounter buffering issues after WriteEncodedOpusDataFrame has started
         log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames at sequence(%d)\n",
-            toReadFrames, decoderSequenceNumber);
+            toReadFrames, opusSequenceNumber);
         // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
     }
 
@@ -107,20 +107,18 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
     ring_buffer_size_t write = PaUtil_WriteRingBuffer(&rTransferDataBuf, data, 1);
     if (write != 1)
     {
-        log("poaDecodeOutput::writeEncodedOpusFrame FAILED to write data to rTransferDataBuf for decoderSequenceNumber(%5d), IsCallbackRunning: %d\n",
-            decoderSequenceNumber,
+        log("poaDecodeOutput::writeEncodedOpusFrame FAILED to write data to rTransferDataBuf for data->sequenceNumber(%5d), IsCallbackRunning: %d\n",
+            data->sequenceNumber,
             IsCallbackRunning());
     }
 
     // TODO: align opusSequeneNumber and decoderSequenceNumber usage
     if (!isWriteEncodedOpusFrameCalled)
     {
-        opusSequenceNumber = data->sequenceNumber;
         isWriteEncodedOpusFrameCalled = true;
         log("writeEncodedOpusFrame isWriteEncodedOpusFrameCalled(%d)\n", isWriteEncodedOpusFrameCalled);
     }
 
-    decoderSequenceNumber++;
     return write == 1;
 }
 
@@ -177,6 +175,11 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
         return;
     }
 
+    if (tData.sequenceNumber != opusSequenceNumber + 1)
+    {
+        log("DecodeOpusFrameFromTransfer expected sequenceNumber (%5d) but got (%5d) instead\n", opusSequenceNumber + 1, tData.sequenceNumber);
+    }
+
     //log("DecodeOpusFrameFromTransfer opusSequenceNumber (%d) encoded.sequenceNumber (%d)\n", opusSequenceNumber, tData.sequenceNumber);
 
     if (outputData.streamParams.sampleFormat == paFloat32)
@@ -217,5 +220,5 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
         }
     }
 
-    opusSequenceNumber++;
+    opusSequenceNumber = tData.sequenceNumber;
 }
