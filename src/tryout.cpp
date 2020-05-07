@@ -89,7 +89,7 @@ public:
         int available = in->encodedOpusFramesAvailable();
         if (available < 1)
         {
-            printf("HandleOneOpusFrameAvailable got trigger, but no frame available??? \n");
+            printf("HandleOneOpusFrameAvailable got trigger, but no frame available??? at %d\n", cbCount);
             return;
         }
 
@@ -97,7 +97,7 @@ public:
         bool read = in->readEncodedOpusFrame(&data);
         if (!read)
         {
-            printf("HandleOneOpusFrameAvailable could not readEncodedOpusFrame??\n");
+            printf("HandleOneOpusFrameAvailable could not readEncodedOpusFrame?? at %d\n", cbCount);
             return;
         }
         //printf("HandleOneOpusFrameAvailable sequenceNumber(%d) dataLength(%ld) \n", data.sequenceNumber, data.dataLength);
@@ -105,7 +105,7 @@ public:
         bool written = out->writeEncodedOpusFrame(&data);
         if (!written)
         {
-            printf("HandleOneOpusFrameAvailable could not writeEncodedOpusFrame??\n");
+            printf("HandleOneOpusFrameAvailable could not writeEncodedOpusFrame?? at %d\n", cbCount);
         }
     }
 
@@ -254,14 +254,14 @@ int tryout()
     output->log("testing %s\n", "foo");
 #endif
 
-#define USE_UDP 1
+#define USE_UDP 0
 #if USE_UDP
     // for now cannot use default loop since that is nodejs one and we would need to exit this tryout function for it to do work again
     auto loop = uvw::Loop::getDefault();
     recordingHandler = new HandleUdpDuplexCallback(*loop, input, output);
 #else
     // only works if START_INPUT and START_OUTPUT are defined
-    HandleOpusDataTransferCallback recordingHandler(&input, &output);
+    HandleOpusDataTransferCallback recordingHandler(input, output);
 #endif
 
     PaError err;
