@@ -68,7 +68,7 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
             log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames at sequence(%d)\n",
                 toReadFrames, opusSequenceNumber);
             // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
-            framesSkippedLastTime = framesPerBuffer - toReadFrames;
+            framesSkippedLastTime += framesPerBuffer - toReadFrames;
         }
         else
         {
@@ -223,16 +223,25 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
             log("framesSkippedLastTime (%5d)\n", framesSkippedLastTime);
         }
 
-        // write decoded data to the intermediate ringbuffer
-
-        uint8_t *skipAdjustedBuffer = (uint8_t *)opusDecodeBuffer;
-        skipAdjustedBuffer += framesSkippedLastTime * outputData.sampleSize;
-        ring_buffer_size_t skipAdjustedFrameCount = decodedFrameCount - framesSkippedLastTime;
-
-        ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, skipAdjustedBuffer, skipAdjustedFrameCount);
-        if (written != skipAdjustedFrameCount)
+        if (framesSkippedLastTime <= outputData.opusMaxFrameSize)
         {
-            log("FAILED PaUtil_WriteRingBuffer rIntermediateCallbackBuf at expected sequenceNumber(%d)\n", opusSequenceNumber + 1);
+            // write decoded data to the intermediate ringbuffer
+            uint8_t *skipAdjustedBuffer = (uint8_t *)opusDecodeBuffer;
+            skipAdjustedBuffer += framesSkippedLastTime * outputData.sampleSize;
+            ring_buffer_size_t skipAdjustedFrameCount = decodedFrameCount - framesSkippedLastTime;
+
+            ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, skipAdjustedBuffer, skipAdjustedFrameCount);
+            if (written != skipAdjustedFrameCount)
+            {
+                log("FAILED PaUtil_WriteRingBuffer rIntermediateCallbackBuf at expected sequenceNumber(%d)\n", opusSequenceNumber + 1);
+            }
+        }
+        // TODO if we have more skipped that an opusMaxFrameSize, we might need to decode additional packets
+        else
+        {
+            ring_buffer_size_t transfer_available;
+            transfer_available = PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf);
+            log("DecodeOpusFrameFromTransfer after skipping, there is still (%d) transfer_available\n", transfer_available);
         }
     }
 
