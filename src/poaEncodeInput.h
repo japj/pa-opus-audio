@@ -71,7 +71,7 @@ public:
 
     void registerOpusFrameAvailableCb(paEncodeInputOpusFrameAvailableCb cb, void *userData);
 
-    int encodedOpusFramesAvailable();
+    bool encodedOpusFramesAvailable();
     bool readEncodedOpusFrame(poaCallbackTransferData *data);
 
     virtual int
