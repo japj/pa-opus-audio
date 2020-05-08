@@ -31,6 +31,7 @@ vcpkg_configure_cmake(
         -DPA_USE_WASAPI=ON
         -DPA_USE_WDMKS=ON
         -DPA_USE_WMME=ON
+        -DPA_USE_ALSA=ON
         -DPA_LIBNAME_ADD_SUFFIX=OFF
         -DPA_BUILD_SHARED=OFF
     OPTIONS_DEBUG
