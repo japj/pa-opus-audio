@@ -2,3 +2,4 @@ opus
 portaudio
 --triplet
 x64-linux
+--overlay-ports=../vcpkg-ports
