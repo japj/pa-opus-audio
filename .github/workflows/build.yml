@@ -62,7 +62,7 @@ jobs:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
         # Since the cache must be invalidated when content of the response file changes, let's
         # compute its hash and append this to the computed cache's key.
-        appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
+        appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }} ${{ hashFiles( 'vcpkg-ports/**' ) }}
 
     # prepare node installation
     - name: Install Node v${{ matrix.node }}
