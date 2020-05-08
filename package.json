@@ -41,7 +41,7 @@
         "do-prebuild": "prebuild --backend cmake-js -- --CDnapi_build_version=4",
         "prerebuild": "npm run vcpkgupdate",
         "rebuild": "cmake-js rebuild --CDnapi_build_version=4",
-        "postrebuild": "tsc",
+        "prepare": "tsc",
         "prebuild": "npm run vcpkgupdate",
         "build": "cmake-js build --CDnapi_build_version=4",
         "builddebug": "cmake-js build --CDnapi_build_version=4 -D",
