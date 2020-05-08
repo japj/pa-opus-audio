@@ -2,9 +2,9 @@
 
 > pa-opus-audio is a Node.js native addon for low latency PortAudio/Opus Audio Recording and Playback.
 
-NOTE: Work in progress
+NOTE: Work in progress, see also [Changelog](https://github.com/japj/pa-opus-audio/blob/master/CHANGELOG.md) and [Current Issues](https://github.com/japj/pa-opus-audio/issues)
 
-This is part of the "rehearse20" project and uses concepts and code from my [trx portaudio prototype](https://github.com/japj/trx).
+This is part of the "rehearse20" project.
 
 ## Example
 
@@ -34,6 +34,6 @@ setTimeout(function () {
 
 ## Platform support
 
-- Linux x64
 - macOS x64
+- Linux x64
 - Windows x64

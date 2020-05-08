@@ -38,38 +38,41 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
     //    - first the poaCallbackTransferData, then the actual encoded data
     // 8. trigger opusAvailableFrame callback
 
-    ring_buffer_size_t written;
-    ring_buffer_size_t write_available;
-    write_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
+    if (userCallbackOpusFrameAvailableCb != NULL)
+    { // only store data if a user callback for processing is installed
+        ring_buffer_size_t written;
+        ring_buffer_size_t write_available;
+        write_available = PaUtil_GetRingBufferWriteAvailable(&rIntermediateCallbackBuf);
 
-    unsigned long toWriteFrames = framesPerBuffer > write_available ? write_available : framesPerBuffer;
-    // TODO: put write_available amount of frames in the buffer instead of fully skipping
-    if (toWriteFrames != framesPerBuffer)
-    {
-        log("_HandlePaStreamCallback SKIPPING recording, no room for (%d) intermediate frames\n", framesPerBuffer - write_available);
-    }
-
-    // 1. store new frames in intermediate ringbuffer
-    written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, inputBuffer, framesPerBuffer);
-    if (written != framesPerBuffer)
-    {
-        log("_HandlePaStreamCallback should not happen? frames available(%ld), written(%d)\n", framesPerBuffer, written);
-    }
-
-    ring_buffer_size_t read_available;
-    read_available = PaUtil_GetRingBufferReadAvailable(&rIntermediateCallbackBuf);
-    if (read_available >= inputData.opusMaxFrameSize)
-    {
-        //log("_HandlePaStreamCallback: %dx opusMaxFrameSize available\n", read_available / inputData.opusMaxFrameSize);
-
-        // TODO: move this to trigger with encoded data
-        if (userCallbackOpusFrameAvailableCb != NULL)
+        unsigned long toWriteFrames = framesPerBuffer > write_available ? write_available : framesPerBuffer;
+        // TODO: put write_available amount of frames in the buffer instead of fully skipping
+        if (toWriteFrames != framesPerBuffer)
         {
-            //log("userCallbackOpusFrameAvailableCb\n");
+            log("_HandlePaStreamCallback SKIPPING recording, no room for (%d) intermediate frames\n", framesPerBuffer - write_available);
+        }
 
-            EncodeOpusFrameFromIntermediate();
+        // 1. store new frames in intermediate ringbuffer
+        written = PaUtil_WriteRingBuffer(&rIntermediateCallbackBuf, inputBuffer, framesPerBuffer);
+        if (written != framesPerBuffer)
+        {
+            log("_HandlePaStreamCallback should not happen? frames available(%ld), written(%d)\n", framesPerBuffer, written);
+        }
 
-            userCallbackOpusFrameAvailableCb(userCallbackOpusFrameAvailableData);
+        ring_buffer_size_t read_available;
+        read_available = PaUtil_GetRingBufferReadAvailable(&rIntermediateCallbackBuf);
+        if (read_available >= inputData.opusMaxFrameSize)
+        {
+            //log("_HandlePaStreamCallback: %dx opusMaxFrameSize available\n", read_available / inputData.opusMaxFrameSize);
+
+            // TODO: move this to trigger with encoded data
+            if (userCallbackOpusFrameAvailableCb != NULL)
+            {
+                //log("userCallbackOpusFrameAvailableCb\n");
+
+                EncodeOpusFrameFromIntermediate();
+
+                userCallbackOpusFrameAvailableCb(userCallbackOpusFrameAvailableData);
+            }
         }
     }
 
@@ -146,6 +149,8 @@ void poaEncodeInput::EncodeOpusFrameFromIntermediate()
         log("EncodeOpusFrameFromIntermediate could not read full opus frame, only (%d) frames\n", readFrames);
     }
 
+    opusSequenceNumber++;
+
     if (inputData.streamParams.sampleFormat == paFloat32)
     {
         // encode audio
@@ -168,18 +173,22 @@ void poaEncodeInput::EncodeOpusFrameFromIntermediate()
     poaCallbackTransferData tData;
     memcpy(tData.data, opusEncodeBuffer, encodedPacketSize);
     tData.dataLength = encodedPacketSize;
-    tData.sequenceNumber = opusSequenceNumber++;
+    tData.sequenceNumber = opusSequenceNumber;
 
     ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rTransferDataBuf, &tData, 1);
     if (written != 1)
     {
-        log("FAILED PaUtil_WriteRingBuffer rTransferDataBuf for sequenceNumber(%d)\n", tData.sequenceNumber);
+        log("EncodeOpusFrameFromIntermediate FAILED PaUtil_WriteRingBuffer rTransferDataBuf for sequenceNumber(%d)\n", tData.sequenceNumber);
+    }
+    else
+    {
+        //log("EncodeOpusFrameFromIntermediate finished sequenceNumber(%d)\n", tData.sequenceNumber);
     }
 }
 
-int poaEncodeInput::encodedOpusFramesAvailable()
+bool poaEncodeInput::encodedOpusFramesAvailable()
 {
-    return PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf);
+    return PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf) > 0;
 }
 
 bool poaEncodeInput::readEncodedOpusFrame(poaCallbackTransferData *data)

@@ -94,6 +94,8 @@ server.on('listening', function () {
 //emits after the socket is closed using socket.close();
 server.on('close', function () {
   console.log('Socket is closed !');
+
+  instance.greet("hi"); // keep instance alive
 });
 
 server.bind(2222);

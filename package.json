@@ -1,7 +1,7 @@
 {
     "name": "pa-opus-audio",
     "description": "pa-opus-audio is a Node.js native addon for low latency PortAudio/Opus Audio Recording and Playback.",
-    "version": "0.2.0-dev",
+    "version": "0.2.0",
     "author": "Jeroen Janssen <jeroen.janssen@gmail.com>",
     "license": "MIT",
     "keywords": [
@@ -21,6 +21,9 @@
         "napi_versions": [
             4
         ]
+    },
+    "engines": {
+        "node": ">=12.16"
     },
     "dependencies": {
         "bindings": "^1.5.0",

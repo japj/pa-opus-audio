@@ -8,7 +8,8 @@ class poaDecodeOutput : public poaBase
 private:
     /* data */
     bool isWriteEncodedOpusFrameCalled;
-    int decoderSequenceNumber;
+
+    int framesSkippedLastTime;
 
     OpusDecoder *decoder;
     void *opusDecodeBuffer;

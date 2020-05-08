@@ -1,6 +1,14 @@
 #include <stdarg.h>
 #include "poaBase.h"
 
+#ifdef __linux__
+#include "pa_linux_alsa.h"
+#endif
+
+#ifdef __APPLE__
+#include "pa_mac_core.h"
+#endif
+
 /* from #include "pa_util.h", which is not exported by default */
 extern "C"
 {
@@ -116,13 +124,27 @@ void poaBase::log_pa_stream_info(PaStreamParameters *params)
     deviceInfo = Pa_GetDeviceInfo(params->device);
     const PaStreamInfo *streamInfo;
     streamInfo = Pa_GetStreamInfo(stream);
+    double inputLatencySamples = streamInfo->inputLatency * streamInfo->sampleRate;
+    double outputLatencySamples = streamInfo->outputLatency * streamInfo->sampleRate;
 
     log("DeviceId:         %d (%s)\n", params->device, deviceInfo->name);
     log("ChannelCount:     %d\n", params->channelCount);
     log("SuggestedLatency: %f\n", params->suggestedLatency);
-    log("InputLatency:     %20f (%5.f samples)\n", streamInfo->inputLatency, streamInfo->inputLatency * streamInfo->sampleRate);
-    log("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, streamInfo->outputLatency * streamInfo->sampleRate);
+    log("InputLatency:     %20f (%5.f samples)\n", streamInfo->inputLatency, inputLatencySamples);
+    log("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, outputLatencySamples);
     log("SampleRate:       %.f\n", streamInfo->sampleRate);
+
+    // WARN if input/output latency(in samples) is more than 2 * opus max frame
+    if (inputLatencySamples > 2 * inputData.opusMaxFrameSize)
+    {
+        log("   !!! INPUT LATENCY WARNING !!! inputLatencySamples (%4.f) > 2 * opusMaxFrameSize (%4d) !!!\n",
+            inputLatencySamples, 2 * inputData.opusMaxFrameSize);
+    }
+    if (outputLatencySamples > 2 * outputData.opusMaxFrameSize)
+    {
+        log("   !!! OUTPUT LATENCY WARNING !!! outputLatencySamples (%4.f) > 2 * opusMaxFrameSize (%4d) !!!\n",
+            outputLatencySamples, 2 * outputData.opusMaxFrameSize);
+    }
 }
 
 PaError poaBase::StartStream()
@@ -255,11 +277,20 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     PaStreamFlags streamFlags;
     int sampleSize;
 
+#ifdef __APPLE__
+    /** paMacCoreMinimizeCPU is a setting to minimize CPU usage, even if that means interrupting the device (by changing device parameters) */
+    PaMacCoreStreamInfo macInfo;
+    PaMacCore_SetupStreamInfo(&macInfo, paMacCoreMinimizeCPU);
+#endif
+
     if (requestedInputDevice != paNoDevice)
     {
         // setup requested input device parameters
         inputData.streamParams.device = requestedInputDevice,
         inputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(inputData.streamParams.device)->defaultLowInputLatency;
+#ifdef __APPLE__
+        inputData.streamParams.hostApiSpecificStreamInfo = &macInfo;
+#endif
         inputParams = &inputData.streamParams;
 
         sampleRate = inputData.sampleRate;
@@ -272,6 +303,9 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         // setup requested output device parameters
         outputData.streamParams.device = requestedOutputDevice;
         outputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(outputData.streamParams.device)->defaultLowOutputLatency;
+#ifdef __APPLE__
+        outputData.streamParams.hostApiSpecificStreamInfo = &macInfo;
+#endif
         outputParams = &outputData.streamParams;
 
         sampleRate = outputData.sampleRate;
@@ -349,6 +383,16 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     {
         log("OpenDeviceStream: PaUtil_InitializeRingBuffer rTransferDataBuf failed with %d\n", err);
     }
+
+#ifdef __linux__
+    /** Instruct Alsa to enable real-time priority when starting the audio thread.
+     *
+     * the audio callback thread will be created with the FIFO scheduling policy, which is suitable for realtime operation.
+     * 
+     * NOTE: this currently assumes we are actually only using alsa on linux (which is true since our copy of portaudio has that only enabled on linux)
+     **/
+    PaAlsa_EnableRealtimeScheduling(this->stream, 1);
+#endif
 
     err = HandleOpenDeviceStream();
     PaLOGERR(err, "HandleOpenDeviceStream\n");

@@ -1,9 +1,10 @@
 #include "poaDecodeOutput.h"
 #include "poaEncodeInput.h"
+#include <memory>
 
+#if 0
 #include "../thirdparty/uvw/uvw.hpp"
 
-#include <memory>
 
 void listen(uvw::Loop &loop)
 {
@@ -45,6 +46,7 @@ void tryUdp()
     conn(*loop);
     //loop->run();
 }
+#endif
 
 #define LOGERR(r, call)                                              \
     {                                                                \
@@ -88,8 +90,8 @@ public:
         //printf("\nHandleOpusDataTransferCallback::HandleOneOpusFrameAvailable\n");
         cbCount++;
 
-        int available = in->encodedOpusFramesAvailable();
-        if (available < 1)
+        bool available = in->encodedOpusFramesAvailable();
+        if (!available)
         {
             printf("HandleOneOpusFrameAvailable got trigger, but no frame available??? \n");
             return;
@@ -206,7 +208,7 @@ int tryout()
     LOGERR(err, "output.StartStream");
 #endif
 
-    Pa_Sleep(5000);
+    Pa_Sleep(10000);
 
 #if START_INPUT
     printf("input callback running: %d\n", input.IsCallbackRunning());
@@ -266,6 +268,6 @@ int tryout()
 #endif
     printf("Exiting...\n");
 
-    tryUdp();
+    //    tryUdp();
     return 0;
 }
