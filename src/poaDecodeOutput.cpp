@@ -6,7 +6,8 @@ poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
                                                      decoder(NULL),
                                                      opusDecodeBuffer(NULL),
                                                      opusDecodeBufferSize(0),
-                                                     framesSkippedLastTime(0)
+                                                     framesSkippedLastTime(0),
+                                                     lastFramesSkippedAtSequenceNumber(0)
 {
     //is this needed? outputData.streamParams.channelCount = 2;
 
@@ -67,10 +68,15 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
         if (toReadFrames != framesPerBuffer)
         {
             // only log this if encounter buffering issues after WriteEncodedOpusDataFrame has started
-            log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames at sequence(%d)\n",
-                toReadFrames, opusSequenceNumber);
+            if (opusSequenceNumber != lastFramesSkippedAtSequenceNumber)
+            {
+                // only log this ONCE for all times a skip happens for the same opusSequenceNumber to prevent excessive log spamming
+                log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames at sequence(%d)\n",
+                    toReadFrames, opusSequenceNumber);
+            }
             // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
             framesSkippedLastTime = framesPerBuffer - toReadFrames;
+            lastFramesSkippedAtSequenceNumber = opusSequenceNumber;
         }
         else
         {
