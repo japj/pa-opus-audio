@@ -1,9 +1,10 @@
 #include "poaDecodeOutput.h"
 #include "poaEncodeInput.h"
+#include <memory>
 
+#if 0
 #include "../thirdparty/uvw/uvw.hpp"
 
-#include <memory>
 
 void listen(uvw::Loop &loop)
 {
@@ -45,6 +46,7 @@ void tryUdp()
     conn(*loop);
     //loop->run();
 }
+#endif
 
 #define LOGERR(r, call)                                              \
     {                                                                \
@@ -266,6 +268,6 @@ int tryout()
 #endif
     printf("Exiting...\n");
 
-    tryUdp();
+    //    tryUdp();
     return 0;
 }
