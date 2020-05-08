@@ -73,5 +73,13 @@ jobs:
     - name: Install dependencies
       run: npm install --build-from-source
 
+    - name: Package prebuild
+      run: npm run do-prebuild
+
     - name: Run smoketest
       run: npm run smoketest
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: prebuilds
+        path: "prebuilds/*.tar.gz"
