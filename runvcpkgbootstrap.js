@@ -16,12 +16,14 @@ const vcpkgBinary = (process.platform === 'win32') ?
 
 function spawnBootstrap() {
     if (existsSync(vcpkgBinary)) {
+        console.log("found " + vcpkgBinary + " .. starting PortInstall")
         spawnPortInstall();
         return;
     }
     else {
+        console.log("did NOT find " + vcpkgBinary + " .. starting PortInstall")
         const bootStrapScript = (process.platform === 'win32') ?
-            "vcpkg/bootstrap-vcpkg.bat" :
+            "vcpkg\\bootstrap-vcpkg.bat" :
             "vcpkg/bootstrap-vcpkg.sh";
 
 
@@ -45,7 +47,7 @@ function spawnPortInstall() {
             "@vcpkg_x64-osx.txt" :
             "@vcpkg_x64-linux.txt"
 
-    var portInstallProces = spawn(vcpkgBinary, ["install", portInstallResponsefile, "--overlay-ports=../vcpkg-ports"], options)
+    var portInstallProces = spawn(vcpkgBinary, ["install", portInstallResponsefile], options)
 
     portInstallProces.on('close', function (code) {
         process.stdout.write('"bootstrap" finished with code ' + code + '\n');
