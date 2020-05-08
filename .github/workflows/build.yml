@@ -41,6 +41,11 @@ jobs:
         submodules: true      
 
     - uses: lukka/get-cmake@latest
+    
+    # need libasound2-dev for portaudio
+    - name: setup libasound2-dev on ubuntu
+      if: ${{matrix.os}} == "ubuntu-latest"
+      run: sudo apt install libasound2-dev
 
     - name: Set vcpkg's response file path used as part of cache's key.
       uses: lukka/set-shell-env@master
