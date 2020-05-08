@@ -149,6 +149,8 @@ void poaEncodeInput::EncodeOpusFrameFromIntermediate()
         log("EncodeOpusFrameFromIntermediate could not read full opus frame, only (%d) frames\n", readFrames);
     }
 
+    opusSequenceNumber++;
+
     if (inputData.streamParams.sampleFormat == paFloat32)
     {
         // encode audio
@@ -171,18 +173,22 @@ void poaEncodeInput::EncodeOpusFrameFromIntermediate()
     poaCallbackTransferData tData;
     memcpy(tData.data, opusEncodeBuffer, encodedPacketSize);
     tData.dataLength = encodedPacketSize;
-    tData.sequenceNumber = opusSequenceNumber++;
+    tData.sequenceNumber = opusSequenceNumber;
 
     ring_buffer_size_t written = PaUtil_WriteRingBuffer(&rTransferDataBuf, &tData, 1);
     if (written != 1)
     {
         log("EncodeOpusFrameFromIntermediate FAILED PaUtil_WriteRingBuffer rTransferDataBuf for sequenceNumber(%d)\n", tData.sequenceNumber);
     }
+    else
+    {
+        //log("EncodeOpusFrameFromIntermediate finished sequenceNumber(%d)\n", tData.sequenceNumber);
+    }
 }
 
 bool poaEncodeInput::encodedOpusFramesAvailable()
 {
-    return PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf) > 1;
+    return PaUtil_GetRingBufferReadAvailable(&rTransferDataBuf) > 0;
 }
 
 bool poaEncodeInput::readEncodedOpusFrame(poaCallbackTransferData *data)
