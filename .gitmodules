@@ -1,4 +1,4 @@
 [submodule "vcpkg"]
 	path = vcpkg
-	url = https://github.com/japj/vcpkg.git
-	branch = pa-opus-audio
+	url = https://github.com/microsoft/vcpkg.git
+	branch = master
