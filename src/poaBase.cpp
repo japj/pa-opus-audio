@@ -120,13 +120,27 @@ void poaBase::log_pa_stream_info(PaStreamParameters *params)
     deviceInfo = Pa_GetDeviceInfo(params->device);
     const PaStreamInfo *streamInfo;
     streamInfo = Pa_GetStreamInfo(stream);
+    double inputLatencySamples = streamInfo->inputLatency * streamInfo->sampleRate;
+    double outputLatencySamples = streamInfo->outputLatency * streamInfo->sampleRate;
 
     log("DeviceId:         %d (%s)\n", params->device, deviceInfo->name);
     log("ChannelCount:     %d\n", params->channelCount);
     log("SuggestedLatency: %f\n", params->suggestedLatency);
-    log("InputLatency:     %20f (%5.f samples)\n", streamInfo->inputLatency, streamInfo->inputLatency * streamInfo->sampleRate);
-    log("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, streamInfo->outputLatency * streamInfo->sampleRate);
+    log("InputLatency:     %20f (%5.f samples)\n", streamInfo->inputLatency, inputLatencySamples);
+    log("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, outputLatencySamples);
     log("SampleRate:       %.f\n", streamInfo->sampleRate);
+
+    // WARN if input/output latency(in samples) is more than 2 * opus max frame
+    if (inputLatencySamples > 2 * inputData.opusMaxFrameSize)
+    {
+        log("   !!! INPUT LATENCY WARNING !!! inputLatencySamples (%4.f) > 2 * opusMaxFrameSize (%4d) !!!\n",
+            inputLatencySamples, 2 * inputData.opusMaxFrameSize);
+    }
+    if (outputLatencySamples > 2 * outputData.opusMaxFrameSize)
+    {
+        log("   !!! OUTPUT LATENCY WARNING !!! outputLatencySamples (%4.f) > 2 * opusMaxFrameSize (%4d) !!!\n",
+            outputLatencySamples, 2 * outputData.opusMaxFrameSize);
+    }
 }
 
 PaError poaBase::StartStream()
