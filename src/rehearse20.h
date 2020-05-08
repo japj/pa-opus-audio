@@ -56,4 +56,5 @@ private:
 
     void handleEncodeInStreamCallback();
     static void paEncodeInStreamOpusFrameAvailableCallback(void *userData);
+    int outputSequenceNumber;
 };

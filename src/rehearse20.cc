@@ -12,7 +12,8 @@ using namespace Napi;
 
 Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info),
                                                          input("input"),
-                                                         output("output")
+                                                         output("output"),
+                                                         outputSequenceNumber(0)
 {
     Napi::Env env = info.Env();
 
@@ -31,8 +32,11 @@ Rehearse20::Rehearse20(const Napi::CallbackInfo &info) : ObjectWrap(info),
     }
 
     this->_greeterName = info[0].As<Napi::String>().Utf8Value();
-    this->input.setName(this->_greeterName.c_str());
-    this->output.setName(this->_greeterName.c_str());
+    std::string inString = this->_greeterName + "input";
+    std::string outString = this->_greeterName + "output";
+
+    this->input.setName(inString.c_str());
+    this->output.setName(outString.c_str());
 
     tsfnSet = false;
 }
@@ -135,6 +139,7 @@ Napi::Value Rehearse20::DecodeDataIntoPlayback(const Napi::CallbackInfo &info)
     memset(&tData, 0, sizeof(tData));
     tData.dataLength = buffer.Length();
     memcpy(tData.data, buffer.Data(), tData.dataLength);
+    tData.sequenceNumber = outputSequenceNumber++; // FAKE sequencenumber, since JS api doesn't have it
     output.writeEncodedOpusFrame(&tData);
     //output.writeEncodedOpusFrame((poaCallbackTransferData *)buffer.Data());
 #endif
