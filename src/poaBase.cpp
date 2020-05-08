@@ -1,6 +1,10 @@
 #include <stdarg.h>
 #include "poaBase.h"
 
+#ifdef __linux__
+#include "pa_linux_alsa.h"
+#endif
+
 /* from #include "pa_util.h", which is not exported by default */
 extern "C"
 {
