@@ -45,7 +45,7 @@ function spawnPortInstall() {
             "@vcpkg_x64-osx.txt" :
             "@vcpkg_x64-linux.txt"
 
-    var portInstallProces = spawn(vcpkgBinary, ["install", portInstallResponsefile, "--overlay-ports=vcpkg-ports"], options)
+    var portInstallProces = spawn(vcpkgBinary, ["install", portInstallResponsefile, "--overlay-ports=../vcpkg-ports"], options)
 
     portInstallProces.on('close', function (code) {
         process.stdout.write('"bootstrap" finished with code ' + code + '\n');
