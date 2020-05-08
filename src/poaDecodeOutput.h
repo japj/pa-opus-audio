@@ -10,6 +10,7 @@ private:
     bool isWriteEncodedOpusFrameCalled;
 
     int framesSkippedLastTime;
+    int lastFramesSkippedAtSequenceNumber;
 
     OpusDecoder *decoder;
     void *opusDecodeBuffer;
