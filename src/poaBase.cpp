@@ -5,6 +5,10 @@
 #include "pa_linux_alsa.h"
 #endif
 
+#ifdef __APPLE__
+#include "pa_mac_core.h"
+#endif
+
 /* from #include "pa_util.h", which is not exported by default */
 extern "C"
 {
@@ -273,11 +277,20 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     PaStreamFlags streamFlags;
     int sampleSize;
 
+#ifdef __APPLE__
+    /** paMacCoreMinimizeCPU is a setting to minimize CPU usage, even if that means interrupting the device (by changing device parameters) */
+    PaMacCoreStreamInfo macInfo;
+    PaMacCore_SetupStreamInfo(&macInfo, paMacCoreMinimizeCPU);
+#endif
+
     if (requestedInputDevice != paNoDevice)
     {
         // setup requested input device parameters
         inputData.streamParams.device = requestedInputDevice,
         inputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(inputData.streamParams.device)->defaultLowInputLatency;
+#ifdef __APPLE__
+        inputData.streamParams.hostApiSpecificStreamInfo = &macInfo;
+#endif
         inputParams = &inputData.streamParams;
 
         sampleRate = inputData.sampleRate;
@@ -290,6 +303,9 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
         // setup requested output device parameters
         outputData.streamParams.device = requestedOutputDevice;
         outputData.streamParams.suggestedLatency = Pa_GetDeviceInfo(outputData.streamParams.device)->defaultLowOutputLatency;
+#ifdef __APPLE__
+        outputData.streamParams.hostApiSpecificStreamInfo = &macInfo;
+#endif
         outputParams = &outputData.streamParams;
 
         sampleRate = outputData.sampleRate;
