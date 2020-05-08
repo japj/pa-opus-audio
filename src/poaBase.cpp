@@ -127,6 +127,9 @@ void poaBase::log_pa_stream_info(PaStreamParameters *params)
 
 PaError poaBase::StartStream()
 {
+#ifdef __linux__
+    PaAlsa_EnableRealtimeScheduling(this->stream, 1);
+#endif
     return Pa_StartStream(this->stream);
 }
 
