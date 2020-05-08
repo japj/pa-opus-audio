@@ -1,6 +1,6 @@
 /**
  * This script bootstraps vcpkg and uses it to install the required package port scripts
- */ 
+ */
 const { execFileSync, spawn } = require('child_process');
 const { existsSync } = require('fs');
 
@@ -12,16 +12,18 @@ var options = {
 };
 
 const vcpkgBinary = (process.platform === 'win32') ?
-                    "vcpkg\\vcpkg.exe" : "vcpkg/vcpkg";
+    "vcpkg\\vcpkg.exe" : "vcpkg/vcpkg";
 
 function spawnBootstrap() {
     if (existsSync(vcpkgBinary)) {
+        console.log("found " + vcpkgBinary + " .. starting PortInstall")
         spawnPortInstall();
         return;
     }
     else {
+        console.log("did NOT find " + vcpkgBinary + " .. starting PortInstall")
         const bootStrapScript = (process.platform === 'win32') ?
-            "vcpkg/bootstrap-vcpkg.bat" :
+            "vcpkg\\bootstrap-vcpkg.bat" :
             "vcpkg/bootstrap-vcpkg.sh";
 
 
