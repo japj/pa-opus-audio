@@ -4,7 +4,7 @@
 
 NOTE: Work in progress, see also [Changelog](https://github.com/japj/pa-opus-audio/blob/master/CHANGELOG.md) and [Current Issues](https://github.com/japj/pa-opus-audio/issues)
 
-This is part of the "rehearse20" project and uses concepts and code from my [trx portaudio prototype](https://github.com/japj/trx).
+This is part of the "rehearse20" project.
 
 ## Example
 
