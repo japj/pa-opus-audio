@@ -145,9 +145,6 @@ void poaBase::log_pa_stream_info(PaStreamParameters *params)
 
 PaError poaBase::StartStream()
 {
-#ifdef __linux__
-    PaAlsa_EnableRealtimeScheduling(this->stream, 1);
-#endif
     return Pa_StartStream(this->stream);
 }
 
@@ -370,6 +367,16 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     {
         log("OpenDeviceStream: PaUtil_InitializeRingBuffer rTransferDataBuf failed with %d\n", err);
     }
+
+#ifdef __linux__
+    /** Instruct Alsa to enable real-time priority when starting the audio thread.
+     *
+     * the audio callback thread will be created with the FIFO scheduling policy, which is suitable for realtime operation.
+     * 
+     * NOTE: this currently assumes we are actually only using alsa on linux (which is true since our copy of portaudio has that only enabled on linux)
+     **/
+    PaAlsa_EnableRealtimeScheduling(this->stream, 1);
+#endif
 
     err = HandleOpenDeviceStream();
     PaLOGERR(err, "HandleOpenDeviceStream\n");
