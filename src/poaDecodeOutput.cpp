@@ -1,4 +1,5 @@
 #include <string.h>
+#include <math.h>
 #include "poaDecodeOutput.h"
 
 poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
@@ -97,6 +98,19 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
 
 int poaDecodeOutput::HandleOpenDeviceStream()
 {
+    // adjust transferDataElements size depending on outputBufferSize
+    const PaStreamInfo *streamInfo;
+    streamInfo = GetStreamInfo();
+    double outputLatencySamples = streamInfo->outputLatency * streamInfo->sampleRate;
+    if (outputLatencySamples > transferDataElements * outputData.opusMaxFrameSize)
+    {
+        transferDataElements = ceil(outputLatencySamples / outputData.opusMaxFrameSize);
+        log("poaDecodeOutput::HandleOpenDeviceStream ADJUSTING transferDataElements to: %d\n", transferDataElements);
+        log("!!! outputLatencySamples (%4.f) transferDataElements * opusMaxFrameSize (%4d) !!!\n",
+            outputLatencySamples, transferDataElements * outputData.opusMaxFrameSize);
+    }
+
+    // setup decoder
     int err = 0;
 
     this->decoder = opus_decoder_create(outputData.sampleRate, inputData.streamParams.channelCount, &err);

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <math.h>
 #include "poaEncodeInput.h"
 
 poaEncodeInput::poaEncodeInput(const char *name) : poaBase(name),
@@ -83,6 +84,19 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
 
 int poaEncodeInput::HandleOpenDeviceStream()
 {
+    // adjust transferDataElements size depending on inputBufferSize
+    const PaStreamInfo *streamInfo;
+    streamInfo = GetStreamInfo();
+    double inputLatencySamples = streamInfo->inputLatency * streamInfo->sampleRate;
+    if (inputLatencySamples > transferDataElements * inputData.opusMaxFrameSize)
+    {
+        transferDataElements = ceil(inputLatencySamples / inputData.opusMaxFrameSize);
+        log("poaEncodeInput::HandleOpenDeviceStream ADJUSTING transferDataElements to: %d\n", transferDataElements);
+        log("!!! inputLatencySamples (%4.f) transferDataElements * opusMaxFrameSize (%4d) !!!\n",
+            inputLatencySamples, transferDataElements * inputData.opusMaxFrameSize);
+    }
+
+    // setup encoder
     int err = 0;
 
     this->encoder = opus_encoder_create(inputData.sampleRate,
