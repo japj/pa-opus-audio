@@ -22,7 +22,7 @@ poaBase::poaBase(const char *name) : name(name),
                                      opusSequenceNumber(0),
                                      rIntermediateCallbackBufData(NULL),
                                      rTransferDataBufData(NULL),
-                                     transferDataElements(8) // TODO: determine/calculate good value
+                                     transferDataElements(2) // TODO: determine/calculate good value
 {
     PaError err = Pa_Initialize();
     if (err != paNoError)
