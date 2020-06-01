@@ -208,7 +208,7 @@ int tryout()
     LOGERR(err, "output.StartStream");
 #endif
 
-    Pa_Sleep(10000);
+    Pa_Sleep(500000);
 
 #if START_INPUT
     printf("input callback running: %d\n", input.IsCallbackRunning());
