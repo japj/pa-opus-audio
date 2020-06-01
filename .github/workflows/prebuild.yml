@@ -38,7 +38,7 @@ jobs:
       run: sudo apt install libasound2-dev
 
     - name: Set vcpkg's response file path used as part of cache's key.
-      uses: lukka/set-shell-env@master
+      uses: lukka/set-shell-env@v1
       with:
         VCPKGRESPONSEFILE: ${{ github.workspace }}/vcpkg_${{ matrix.triplet }}.txt
         
