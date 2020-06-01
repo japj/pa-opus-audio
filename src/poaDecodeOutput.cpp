@@ -274,7 +274,7 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
             if (transfer_available > 1)
             {
                 // only log if we have more than 1 additional encoded frame pending
-                log("DecodeOpusFrameFromTransfer after decoding, there is still (%d) transfer_available\n", transfer_available);
+                log("DecodeOpusFrameFromTransfer after decoding, there is still (%d) transfer_available tData.sequenceNumber(%d)\n", transfer_available, tData.sequenceNumber);
             }
         }
     }
