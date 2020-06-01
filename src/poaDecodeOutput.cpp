@@ -1,4 +1,5 @@
 #include <string.h>
+#include <math.h>
 #include "poaDecodeOutput.h"
 
 poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
@@ -7,7 +8,8 @@ poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
                                                      opusDecodeBuffer(NULL),
                                                      opusDecodeBufferSize(0),
                                                      framesSkippedLastTime(0),
-                                                     lastFramesSkippedAtSequenceNumber(0)
+                                                     lastFramesSkippedAtSequenceNumber(0),
+                                                     currentSkippedFrameCount(0)
 {
     //is this needed? outputData.streamParams.channelCount = 2;
 
@@ -77,6 +79,7 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
             // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
             framesSkippedLastTime = framesPerBuffer - toReadFrames;
             lastFramesSkippedAtSequenceNumber = opusSequenceNumber;
+            currentSkippedFrameCount += framesPerBuffer - toReadFrames;
         }
         else
         {
@@ -97,6 +100,19 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
 
 int poaDecodeOutput::HandleOpenDeviceStream()
 {
+    // adjust transferDataElements size depending on outputBufferSize
+    const PaStreamInfo *streamInfo;
+    streamInfo = GetStreamInfo();
+    double outputLatencySamples = streamInfo->outputLatency * streamInfo->sampleRate;
+    if (outputLatencySamples > transferDataElements * outputData.opusMaxFrameSize)
+    {
+        transferDataElements = ceil(outputLatencySamples / outputData.opusMaxFrameSize);
+        log("poaDecodeOutput::HandleOpenDeviceStream ADJUSTING transferDataElements to: %d\n", transferDataElements);
+        log("!!! outputLatencySamples (%4.f) transferDataElements * opusMaxFrameSize (%4d) !!!\n",
+            outputLatencySamples, transferDataElements * outputData.opusMaxFrameSize);
+    }
+
+    // setup decoder
     int err = 0;
 
     this->decoder = opus_decoder_create(outputData.sampleRate, inputData.streamParams.channelCount, &err);
@@ -236,7 +252,7 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
     {
         if (framesSkippedLastTime > 0)
         {
-            log("framesSkippedLastTime (%5d)\n", framesSkippedLastTime);
+            log("framesSkippedLastTime (%5d) currentSkippedFrameCount(%5d)\n", framesSkippedLastTime, currentSkippedFrameCount);
         }
 
         if (framesSkippedLastTime <= outputData.opusMaxFrameSize)
@@ -260,7 +276,24 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
             if (transfer_available > 1)
             {
                 // only log if we have more than 1 additional encoded frame pending
-                log("DecodeOpusFrameFromTransfer after decoding, there is still (%d) transfer_available\n", transfer_available);
+                log("DecodeOpusFrameFromTransfer after decoding, there is still (%d) transfer_available tData.sequenceNumber(%d) currentSkippedFrameCount(%d)\n", transfer_available, tData.sequenceNumber, currentSkippedFrameCount);
+
+                if (currentSkippedFrameCount >= 2 * outputData.opusMaxFrameSize)
+                {
+                    log("currentSkippedFrameCount(%d) >= outputData.opusMaxFrameSize(%d), SKIPADJUST a full frame from audio playback\n", currentSkippedFrameCount, outputData.opusMaxFrameSize);
+
+                    // reading into tData so expected sequenceNumber gets updated too
+                    ring_buffer_size_t read = PaUtil_ReadRingBuffer(&rTransferDataBuf, &tData, 1);
+                    if (read != 1)
+                    {
+                        log("FAILED SKIPADJUST\n");
+                    }
+                    else
+                    {
+
+                        currentSkippedFrameCount -= outputData.opusMaxFrameSize;
+                    }
+                }
             }
         }
     }

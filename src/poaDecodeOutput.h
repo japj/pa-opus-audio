@@ -11,6 +11,7 @@ private:
 
     int framesSkippedLastTime;
     int lastFramesSkippedAtSequenceNumber;
+    int currentSkippedFrameCount;
 
     OpusDecoder *decoder;
     void *opusDecodeBuffer;

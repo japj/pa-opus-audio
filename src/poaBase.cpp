@@ -22,7 +22,7 @@ poaBase::poaBase(const char *name) : name(name),
                                      opusSequenceNumber(0),
                                      rIntermediateCallbackBufData(NULL),
                                      rTransferDataBufData(NULL),
-                                     transferDataElements(8) // TODO: determine/calculate good value
+                                     transferDataElements(2) // TODO: determine/calculate good value
 {
     PaError err = Pa_Initialize();
     if (err != paNoError)
@@ -134,16 +134,17 @@ void poaBase::log_pa_stream_info(PaStreamParameters *params)
     log("OutputLatency:    %20f (%5.f samples)\n", streamInfo->outputLatency, outputLatencySamples);
     log("SampleRate:       %.f\n", streamInfo->sampleRate);
 
-    // WARN if input/output latency(in samples) is more than 2 * opus max frame
-    if (inputLatencySamples > 2 * inputData.opusMaxFrameSize)
+    // TODO: this logging can be removed if adjusting in HandleOpenDeviceStream works correctly
+    // WARN if input/output latency(in samples) is more than transferDataElements * opus max frame
+    if (inputLatencySamples > transferDataElements * inputData.opusMaxFrameSize)
     {
-        log("   !!! INPUT LATENCY WARNING !!! inputLatencySamples (%4.f) > 2 * opusMaxFrameSize (%4d) !!!\n",
-            inputLatencySamples, 2 * inputData.opusMaxFrameSize);
+        log("   !!! INPUT LATENCY WARNING !!! inputLatencySamples (%4.f) > transferDataElements * opusMaxFrameSize (%4d) !!!\n",
+            inputLatencySamples, transferDataElements * inputData.opusMaxFrameSize);
     }
-    if (outputLatencySamples > 2 * outputData.opusMaxFrameSize)
+    if (outputLatencySamples > transferDataElements * outputData.opusMaxFrameSize)
     {
-        log("   !!! OUTPUT LATENCY WARNING !!! outputLatencySamples (%4.f) > 2 * opusMaxFrameSize (%4d) !!!\n",
-            outputLatencySamples, 2 * outputData.opusMaxFrameSize);
+        log("   !!! OUTPUT LATENCY WARNING !!! outputLatencySamples (%4.f) > transferDataElements * opusMaxFrameSize (%4d) !!!\n",
+            outputLatencySamples, transferDataElements * outputData.opusMaxFrameSize);
     }
 }
 
@@ -331,6 +332,9 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     PaLOGERR(err, "Pa_OpenStream\n");
     if (inputParams)
     {
+        err = HandleOpenDeviceStream();
+        PaLOGERR(err, "HandleOpenDeviceStream input\n");
+
         log_pa_stream_info(inputParams);
 
         // this needs tuning or can it be calculated?
@@ -342,6 +346,9 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     }
     if (outputParams)
     {
+        err = HandleOpenDeviceStream();
+        PaLOGERR(err, "HandleOpenDeviceStream output\n");
+
         log_pa_stream_info(outputParams);
 
         // NOTE: any "crackling sound" can be recognized in the
@@ -394,8 +401,6 @@ PaError poaBase::OpenDeviceStream(PaDeviceIndex inputDevice, PaDeviceIndex outpu
     PaAlsa_EnableRealtimeScheduling(this->stream, 1);
 #endif
 
-    err = HandleOpenDeviceStream();
-    PaLOGERR(err, "HandleOpenDeviceStream\n");
     return err;
 }
 
