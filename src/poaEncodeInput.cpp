@@ -184,7 +184,13 @@ void poaEncodeInput::EncodeOpusFrameFromIntermediate()
             opusEncodeBufferSize);
     }
 
+    if (encodedPacketSize > poaCallbackTransferDataDataSizeBytes)
+    {
+        log("ENCODED SIZE(%d) BIGGER THAN AVAILABLE ROOM IN DATA PACKET(%d)\n", encodedPacketSize, poaCallbackTransferDataDataSizeBytes);
+        abort();
+    }
     poaCallbackTransferData tData;
+    memset(&tData, 0, sizeof(tData));
     memcpy(tData.data, opusEncodeBuffer, encodedPacketSize);
     tData.dataLength = encodedPacketSize;
     tData.sequenceNumber = opusSequenceNumber;
