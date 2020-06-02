@@ -8,8 +8,8 @@ poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
                                                      opusDecodeBuffer(NULL),
                                                      opusDecodeBufferSize(0),
                                                      framesSkippedLastTime(0),
-                                                     lastFramesSkippedAtSequenceNumber(0),
-                                                     currentSkippedFrameCount(0)
+                                                     lastFramesSkippedAtSequenceNumber(0)
+                                                         currentSkippedFrameCount(0)
 {
     //is this needed? outputData.streamParams.channelCount = 2;
 
@@ -34,6 +34,11 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     // since framesPerBuffer < opusFrameSize(120) we need to store the content of the buffer
     // each time there is enough space in intermediate and we have encoded data available
     // then we transfer the encoded data for consumption to tranferBuffer
+
+    if (framesPerBuffer != outputData.callbackMaxFrameSize)
+    {
+        log("framesPerBuffer(%d) != outputData.callbackMaxFrameSize(%d)\n", framesPerBuffer, outputData.callbackMaxFrameSize);
+    }
 
     // 1. if we have enough space in intermediate buffer for a decoded opus_frame, start decoding
     //    - need to read a poaDeviceData structure
@@ -69,17 +74,18 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
         unsigned long toReadFrames = framesPerBuffer > read_available ? read_available : framesPerBuffer;
         if (toReadFrames != framesPerBuffer)
         {
+            // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
+            framesSkippedLastTime = framesPerBuffer - toReadFrames;
+            currentSkippedFrameCount += (framesPerBuffer - toReadFrames);
+
             // only log this if encounter buffering issues after WriteEncodedOpusDataFrame has started
             if (opusSequenceNumber != lastFramesSkippedAtSequenceNumber)
             {
                 // only log this ONCE for all times a skip happens for the same opusSequenceNumber to prevent excessive log spamming
-                log("_HandlePaStreamCallback: SKIPPING frames/partial playback, only (%d) available intermediate frames at sequence(%d)\n",
-                    toReadFrames, opusSequenceNumber);
+                log("_HandlePaStreamCallback: SKIPPING(%d) frames/partial playback, only (%d) available intermediate frames at sequence(%d), currentSkippedFrameCount(%d)\n",
+                    framesSkippedLastTime, toReadFrames, opusSequenceNumber, currentSkippedFrameCount);
             }
-            // TODO: think about skipping incoming frames until insync with sequenceNumber/playback time
-            framesSkippedLastTime = framesPerBuffer - toReadFrames;
             lastFramesSkippedAtSequenceNumber = opusSequenceNumber;
-            currentSkippedFrameCount += framesPerBuffer - toReadFrames;
         }
         else
         {
@@ -106,7 +112,7 @@ int poaDecodeOutput::HandleOpenDeviceStream()
     double outputLatencySamples = streamInfo->outputLatency * streamInfo->sampleRate;
     if (outputLatencySamples > transferDataElements * outputData.opusMaxFrameSize)
     {
-        transferDataElements = ceil(outputLatencySamples / outputData.opusMaxFrameSize);
+        transferDataElements = 2 * ceil(outputLatencySamples / outputData.opusMaxFrameSize);
         log("poaDecodeOutput::HandleOpenDeviceStream ADJUSTING transferDataElements to: %d\n", transferDataElements);
         log("!!! outputLatencySamples (%4.f) transferDataElements * opusMaxFrameSize (%4d) !!!\n",
             outputLatencySamples, transferDataElements * outputData.opusMaxFrameSize);
@@ -118,8 +124,8 @@ int poaDecodeOutput::HandleOpenDeviceStream()
     this->decoder = opus_decoder_create(outputData.sampleRate, inputData.streamParams.channelCount, &err);
     OpusLOGERR(err, "opus_decoder_create");
 
-    opusDecodeBufferSize = 5760 * outputData.streamParams.channelCount;
-    opusDecodeBuffer = AllocateMemory(opusDecodeBufferSize);
+    opusDecodeBufferSize = 5760;
+    opusDecodeBuffer = AllocateMemory(opusDecodeBufferSize * outputData.streamParams.channelCount * outputData.sampleSize);
 
     return paNoError;
 }
@@ -154,7 +160,7 @@ bool poaDecodeOutput::writeEncodedOpusFrame(poaCallbackTransferData *data)
     if (!isWriteEncodedOpusFrameCalled)
     {
         isWriteEncodedOpusFrameCalled = true;
-        log("writeEncodedOpusFrame isWriteEncodedOpusFrameCalled(%d)\n", isWriteEncodedOpusFrameCalled);
+        log("writeEncodedOpusFrame isWriteEncodedOpusFrameCalled(%d) data->sequenceNumber(%d)\n", isWriteEncodedOpusFrameCalled, data->sequenceNumber);
     }
 
     return write == 1;
@@ -225,7 +231,7 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
         decodedFrameCount = this->opusDecodeFloat((unsigned char *)tData.data,
                                                   tData.dataLength,
                                                   (float *)this->opusDecodeBuffer,
-                                                  outputData.opusMaxFrameSize,
+                                                  this->opusDecodeBufferSize,
                                                   dec);
     }
     else
@@ -234,7 +240,7 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
         decodedFrameCount = this->OpusDecode((unsigned char *)tData.data,
                                              tData.dataLength,
                                              (opus_int16 *)this->opusDecodeBuffer,
-                                             outputData.opusMaxFrameSize,
+                                             this->opusDecodeBufferSize,
                                              dec);
     }
 
@@ -252,7 +258,7 @@ void poaDecodeOutput::DecodeOpusFrameFromTransfer()
     {
         if (framesSkippedLastTime > 0)
         {
-            log("framesSkippedLastTime (%5d) currentSkippedFrameCount(%5d)\n", framesSkippedLastTime, currentSkippedFrameCount);
+            log("DecodeOpusFrameFromTransfer: framesSkippedLastTime (%5d) currentSkippedFrameCount(%5d) at sequence(%d)\n", framesSkippedLastTime, currentSkippedFrameCount, opusSequenceNumber);
         }
 
         if (framesSkippedLastTime <= outputData.opusMaxFrameSize)
