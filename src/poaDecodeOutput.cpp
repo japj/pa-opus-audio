@@ -8,8 +8,8 @@ poaDecodeOutput::poaDecodeOutput(const char *name) : poaBase(name),
                                                      opusDecodeBuffer(NULL),
                                                      opusDecodeBufferSize(0),
                                                      framesSkippedLastTime(0),
-                                                     lastFramesSkippedAtSequenceNumber(0)
-                                                         currentSkippedFrameCount(0)
+                                                     lastFramesSkippedAtSequenceNumber(0),
+                                                     currentSkippedFrameCount(0)
 {
     //is this needed? outputData.streamParams.channelCount = 2;
 
