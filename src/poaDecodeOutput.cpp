@@ -29,6 +29,11 @@ int poaDecodeOutput::_HandlePaStreamCallback(const void *inputBuffer,
     /* Reset output data first */
     memset(outputBuffer, 0, framesPerBuffer * this->outputData.streamParams.channelCount * this->outputData.sampleSize);
 
+    if (statusFlags != 0)
+    {
+        log("_HandlePaStreamCallback statusFlags(%x)\n", statusFlags);
+    }
+
     // since we eventually going to decode data and transfer from compressed chunks,
     // we will only tranfer data if it fully fits in intermediate buffer space
     // since framesPerBuffer < opusFrameSize(120) we need to store the content of the buffer

@@ -39,6 +39,11 @@ int poaEncodeInput::_HandlePaStreamCallback(const void *inputBuffer,
     //    - first the poaCallbackTransferData, then the actual encoded data
     // 8. trigger opusAvailableFrame callback
 
+    if (statusFlags != 0)
+    {
+        log("_HandlePaStreamCallback statusFlags(%x)\n", statusFlags);
+    }
+
     if (userCallbackOpusFrameAvailableCb != NULL)
     { // only store data if a user callback for processing is installed
         ring_buffer_size_t written;
